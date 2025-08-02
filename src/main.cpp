@@ -125,6 +125,7 @@ int main() {
 	const size_t mapHeight = 20;
 
 	Block blocks[] = {
+		Block(glm::ivec2(5, 5), cube, mainShaderProgram, modelLoc),
 		Block(glm::ivec2(10, 10), cube, mainShaderProgram, modelLoc),
 		Block(glm::ivec2(11, 10), cube, mainShaderProgram, modelLoc),
 		Block(glm::ivec2(10, 11), cube, mainShaderProgram, modelLoc),

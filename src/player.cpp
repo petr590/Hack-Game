@@ -49,13 +49,7 @@ namespace hack_game {
 	const float TILE_SIZE = 0.05f;
 	const float BLOCK_SIZE = 0.04f;
 	const float PLAYER_SIZE = 0.03f;
-
-
-	static int hasCollision(float playerStart, float playerEnd, float cubeStart, float cubeEnd) {
-		int startIdx = playerStart < cubeStart ? -1 : playerStart > cubeEnd ? 1 : 0;
-		int endIdx   = playerEnd   < cubeStart ? -1 : playerEnd   > cubeEnd ? 1 : 0;
-		return startIdx == 0 || endIdx == 0 || startIdx != endIdx;
-	}
+	const float PLAYER_RADIUS = 0.03f;
 
 
 	struct box2 {
@@ -69,74 +63,65 @@ namespace hack_game {
 	};
 
 
-	static vec3 moveWithCollisions(const vec3& playerPos, vec3 offset, const vector<dynamic_bitset<>>& map) {
+	static vec2 getOffset(const vec2& center, float radius, const box2& cube) {
+		float dx = center.x - clamp(center.x, cube.sx, cube.ex);
+		float dy = center.y - clamp(center.y, cube.sy, cube.ey);
+
+		printf("center.x = %.4f, cube.sx = %.4f, cube.ex = %.4f\n", center.x, cube.sx, cube.ex);
+		printf("center.y = %.4f, cube.sy = %.4f, cube.ey = %.4f\n", center.y, cube.sy, cube.ey);
+
+		// printf("dx = %.4f, dy = %.4f, radius = %.4f\n", dx, dy, radius);
+
+		if (dx*dx + dy*dy < radius * radius) {
+			printf("collision\n");
+
+			printf("dx = %.4f, dy = %.4f, radius = %.4f\n", dx, dy, radius);
+
+			if (dx == 0 && dy == 0) {
+				printf("ZERO\n");
+				return vec2(0.0f); // TODO
+			}
+
+			vec2 dist(dx, dy);
+			return glm::normalize(dist) * radius - dist;
+		}
+
+		printf("no collision\n");
+		return vec2(0.0f);
+	}
+
+
+	static vec2 moveWithCollisions(const vec3& playerPos, vec2 offset, const vector<dynamic_bitset<>>& map) {
 		const int32_t minMapX = clamp((playerPos.x - PLAYER_SIZE / 2) / TILE_SIZE, 0.0f, float(map.size()));
 		const int32_t minMapZ = clamp((playerPos.z - PLAYER_SIZE / 2) / TILE_SIZE, 0.0f, float(map[0].size()));
 		const int32_t maxMapX = clamp((playerPos.x + PLAYER_SIZE / 2) / TILE_SIZE, 0.0f, float(map.size()));
 		const int32_t maxMapZ = clamp((playerPos.z + PLAYER_SIZE / 2) / TILE_SIZE, 0.0f, float(map[0].size()));
 
-		const ivec2 mapPositions[] = {
-			ivec2(minMapX, minMapZ),
-			ivec2(minMapX, maxMapZ),
-			ivec2(maxMapX, minMapZ),
-			ivec2(maxMapX, maxMapZ),
-		};
+		vector<ivec2> mapPositions;
+		mapPositions.reserve(4);
 
-		printf("(%.4f, %.4f)\n", offset.x, offset.z);
+		mapPositions.emplace_back(minMapX, minMapZ);
+		if (maxMapZ != minMapZ) mapPositions.emplace_back(minMapX, maxMapZ);
+
+		if (maxMapX != minMapX) {
+			mapPositions.emplace_back(maxMapX, minMapZ);
+			if (maxMapZ != minMapZ) mapPositions.emplace_back(maxMapX, maxMapZ);
+		}
+
+		printf("GG\n");
 
 		for (const ivec2& mapPos : mapPositions) {
 			if (!map[mapPos.x][mapPos.y]) continue;
 
-			const vec3 target = playerPos + offset;
-
-			const box2 playerBox(
-				target.x - PLAYER_SIZE / 2,
-				target.z - PLAYER_SIZE / 2,
-				target.x + PLAYER_SIZE / 2,
-				target.z + PLAYER_SIZE / 2
-			);
-
-			const box2 cubeBox(
+			box2 cube(
 				vec2(mapPos) * TILE_SIZE,
 				vec2(mapPos + 1) * TILE_SIZE
 			);
 
-			bool xCollision = hasCollision(playerBox.sx, playerBox.ex, cubeBox.sx, cubeBox.ex);
-			bool yCollision = hasCollision(playerBox.sy, playerBox.ey, cubeBox.sy, cubeBox.ey);
-
-			printf("xCollision = %d, yCollision = %d, playerBox = (%.2f, %.2f, %.2f, %.2f), cubeBox = (%.2f, %.2f, %.2f, %.2f)\n",
-					xCollision, yCollision,
-					playerBox.sx, playerBox.sy, playerBox.ex, playerBox.ey,
-					cubeBox.sx, cubeBox.sy, cubeBox.ex, cubeBox.ey);
-
-			if (xCollision && yCollision) {
-				box2 collisionBox(
-					max(playerBox.sx, cubeBox.sx),
-					max(playerBox.sy, cubeBox.sy),
-					min(playerBox.ex, cubeBox.ex),
-					min(playerBox.ey, cubeBox.ey)
-				);
-
-				float width = collisionBox.ex - collisionBox.sx;
-				float height = collisionBox.ey - collisionBox.sy;
-
-				if (offset.x == 0) width = 0;
-				if (offset.z == 0) height = 0;
-
-				if (offset.x != 0 && offset.z != 0) {
-					width = min(width, height * offset.x / offset.z);
-					height = min(height, width * offset.z / offset.x);
-				}
-
-				offset.x += offset.x > 0 ? -width : width;
-				offset.z += offset.z > 0 ? -height : height;
-
-				// if (fabs(offset.x) > fabs(offset.z)) {
-				// 	offset.x += offset.x > 0 ? -width : width;
-				// } else {
-				// 	offset.z += offset.z > 0 ? -height : height;
-				// }
-			}
+			vec2 newPos = vec2(playerPos.x, playerPos.z) + offset;
+			vec2 off = getOffset(newPos, PLAYER_RADIUS, cube);
+			offset += off;
+			printf("off1 = (%.4f, %.4f)\n", off.x, off.y);
 		}
 
 		return offset;
@@ -144,9 +129,8 @@ namespace hack_game {
 
 
 	void Player::move(float deltaTime, const vector<dynamic_bitset<>>& map) {
-		vec3 offset(
+		vec2 offset(
 			left ? -1 : right ? 1 : 0,
-			0,
 			up ? -1 : down ? 1 : 0
 		);
 
@@ -154,8 +138,13 @@ namespace hack_game {
 
 		offset = glm::normalize(offset) * speed * deltaTime;
 		offset = moveWithCollisions(pos, offset, map);
-		pos += offset;
-		camera.move(offset);
+
+		printf("player: (%.4f, %.4f, %.4f)\n", pos.x, pos.y, pos.z);
+		printf("offset: (%.4f, %.4f, %.4f)\n", offset.x, 0.0f, offset.y);
+
+		vec3 offset3d(offset.x, 0.0f, offset.y);
+		pos += offset3d;
+		camera.move(offset3d);
 	}
 
 	void Player::draw(GLuint modelLocation, GLuint modelColorLocation) {
