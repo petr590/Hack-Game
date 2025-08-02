@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.3)
-project(OpenGLTest VERSION 0.2)
 
 set(CMAKE_CXX_STANDARD 20)
 

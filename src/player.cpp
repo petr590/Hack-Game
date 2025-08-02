@@ -120,16 +120,22 @@ namespace hack_game {
 				float width = collisionBox.ex - collisionBox.sx;
 				float height = collisionBox.ey - collisionBox.sy;
 
-				printf("old offset = (%.4f, %.4f), %d\n", offset.x, offset.z, fabs(offset.x) > fabs(offset.z));
-				printf("width = %.4f, height = %.4f\n", width, height);
+				if (offset.x == 0) width = 0;
+				if (offset.z == 0) height = 0;
 
-				if (fabs(offset.x) > fabs(offset.z)) {
-					offset.x += offset.x > 0 ? -width : width;
-				} else {
-					offset.z += offset.z > 0 ? -height : height;
+				if (offset.x != 0 && offset.z != 0) {
+					width = min(width, height * offset.x / offset.z);
+					height = min(height, width * offset.z / offset.x);
 				}
 
-				printf("new offset = (%.4f, %.4f)\n", offset.x, offset.z);
+				offset.x += offset.x > 0 ? -width : width;
+				offset.z += offset.z > 0 ? -height : height;
+
+				// if (fabs(offset.x) > fabs(offset.z)) {
+				// 	offset.x += offset.x > 0 ? -width : width;
+				// } else {
+				// 	offset.z += offset.z > 0 ? -height : height;
+				// }
 			}
 		}
 
