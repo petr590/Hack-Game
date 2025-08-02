@@ -29,7 +29,7 @@ namespace hack_game {
 		}
 
 		void generateVertexArray();
-		void draw(GLuint vertexColorLocation) const;
+		void draw(GLuint modelColorLocation) const;
 	};
 }
 

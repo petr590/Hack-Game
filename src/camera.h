@@ -2,20 +2,16 @@
 #define HACK_GAME_CAMERA_H
 
 #include <glm/glm.hpp>
-#include <cassert>
 
 namespace hack_game {
 	class Camera {
-		float speed;
-		glm::vec3 pos, target;
-		bool up, down, left, right;
-
 	public:
-		Camera(float speed, glm::vec3 pos, glm::vec3 target):
-				speed(speed), pos(pos), target(target) {}
+		glm::vec3 pos, target;
 
-		void onKey(int key, int action);
-		void move(float deltaTime);
+		Camera(const glm::vec3& pos, const glm::vec3& target):
+				pos(pos), target(target) {}
+
+		void move(const glm::vec3& offset);
 		glm::mat4 getView() const;
 	};
 }

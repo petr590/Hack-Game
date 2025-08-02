@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
-project(OpenGLTest)
+project(OpenGLTest VERSION 0.2)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -34,6 +34,8 @@ add_executable(main
 	src/models.cpp
 	src/block.cpp
 	src/camera.cpp
+	src/player.cpp
+	src/shaders.cpp
 )
 
 target_link_libraries(main glfw GLEW GL)

@@ -9,6 +9,9 @@ namespace hack_game {
 	struct Vertex {
 		const glm::vec3 pos;
 		const glm::vec3 normal;
+
+		Vertex(const glm::vec3 pos, const glm::vec3 normal):
+			pos(pos), normal(normal) {}
 	};
 }
 

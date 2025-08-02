@@ -2,7 +2,7 @@
 
 uniform vec3 lightColor;
 uniform vec3 lightPos;
-uniform vec3 vertexColor;
+uniform vec3 modelColor;
 
 in vec3 vertexPos;
 in vec3 vertexNormal;
@@ -17,6 +17,6 @@ void main() {
 	
 	float diffuse = max(dot(vertexNormal, lightDir), 0.0);
 
-	vec3 result = (AMBIENT + diffuse) * lightColor * vertexColor;
+	vec3 result = (AMBIENT + diffuse) * lightColor * modelColor;
 	color = vec4(result, 1.0f);
 }

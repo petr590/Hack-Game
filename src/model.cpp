@@ -91,16 +91,16 @@ namespace hack_game {
 		this->vertexArray = VAO;
 	}
 
-	void Model::draw(GLuint vertexColorLocation) const {
+	void Model::draw(GLuint modelColorLocation) const {
 		assert(vertexArray != 0);
 		
-		if (vertexColorLocation != 0) {
+		if (modelColorLocation != 0) {
 			glm::vec3 vertexColor(
 				((color >> 16) & 0xFF) / 255.0f,
 				((color >>  8) & 0xFF) / 255.0f,
 				((color      ) & 0xFF) / 255.0f
 			);
-			glUniform3fv(vertexColorLocation, 1, glm::value_ptr(vertexColor));
+			glUniform3fv(modelColorLocation, 1, glm::value_ptr(vertexColor));
 		}
 
 		glBindVertexArray(vertexArray);

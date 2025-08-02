@@ -7,9 +7,10 @@
 namespace hack_game {
 
 	class Block {
-		const bool solid;
+	public:
 		const glm::ivec2 pos;
 
+	private:
 		const Model& model;
 		const GLuint shaderProgram;
 		const GLuint modelLocation;
@@ -18,10 +19,10 @@ namespace hack_game {
 		static constexpr GLfloat SIZE = 0.05f;
 		static constexpr GLfloat EDGE = 0.04f;
 		
-		Block(bool solid, glm::ivec2 pos, const Model& model, GLuint shaderProgram, GLuint modelLocation):
-				solid(solid), pos(pos), model(model), shaderProgram(shaderProgram), modelLocation(modelLocation) {}
+		Block(glm::ivec2 pos, const Model& model, GLuint shaderProgram, GLuint modelLocation):
+				pos(pos), model(model), shaderProgram(shaderProgram), modelLocation(modelLocation) {}
 		
-		void draw(GLuint vertexColorLocation) const;
+		void draw(GLuint modelColorLocation) const;
 	};
 }
 
