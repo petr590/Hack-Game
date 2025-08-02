@@ -82,6 +82,8 @@ namespace hack_game {
 			ivec2(maxMapX, maxMapZ),
 		};
 
+		printf("(%.4f, %.4f)\n", offset.x, offset.z);
+
 		for (const ivec2& mapPos : mapPositions) {
 			if (!map[mapPos.x][mapPos.y]) continue;
 
@@ -118,11 +120,16 @@ namespace hack_game {
 				float width = collisionBox.ex - collisionBox.sx;
 				float height = collisionBox.ey - collisionBox.sy;
 
-				if (width < height) {
+				printf("old offset = (%.4f, %.4f), %d\n", offset.x, offset.z, fabs(offset.x) > fabs(offset.z));
+				printf("width = %.4f, height = %.4f\n", width, height);
+
+				if (fabs(offset.x) > fabs(offset.z)) {
 					offset.x += offset.x > 0 ? -width : width;
 				} else {
 					offset.z += offset.z > 0 ? -height : height;
 				}
+
+				printf("new offset = (%.4f, %.4f)\n", offset.x, offset.z);
 			}
 		}
 
