@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.3)
+project(HackGame)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -31,9 +32,11 @@ add_executable(main
 	src/main.cpp
 	src/model.cpp
 	src/models.cpp
+	src/entity.cpp
 	src/block.cpp
 	src/camera.cpp
 	src/player.cpp
+	src/bullet.cpp
 	src/shaders.cpp
 )
 

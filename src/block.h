@@ -1,28 +1,25 @@
 #ifndef HACK_GAME_BLOCK_H
 #define HACK_GAME_BLOCK_H
 
+#include "entity.h"
 #include "model.h"
 #include <glm/glm.hpp>
 
 namespace hack_game {
 
-	class Block {
+	class Block: public Entity {
 	public:
 		const glm::ivec2 pos;
 
 	private:
 		const Model& model;
-		const GLuint shaderProgram;
-		const GLuint modelLocation;
 
 	public:
-		static constexpr GLfloat SIZE = 0.05f;
-		static constexpr GLfloat EDGE = 0.04f;
+		Block(DrawContext& drawContext, glm::ivec2 pos, const Model& model):
+				Entity(drawContext), pos(pos), model(model) {}
 		
-		Block(glm::ivec2 pos, const Model& model, GLuint shaderProgram, GLuint modelLocation):
-				pos(pos), model(model), shaderProgram(shaderProgram), modelLocation(modelLocation) {}
-		
-		void draw(GLuint modelColorLocation) const;
+		void tick(TickContext&) override;
+		void draw() const override;
 	};
 }
 

@@ -20,6 +20,7 @@ namespace hack_game {
 	using std::cerr;
 	using std::endl;
 	using std::vector;
+	using std::shared_ptr;
 	using boost::dynamic_bitset;
 
 	using glm::vec3;
@@ -27,14 +28,7 @@ namespace hack_game {
 	using glm::value_ptr;
 
 	
-	static Player player(
-		mc,
-		0.5f,
-		Camera(
-			vec3(0.0f, 0.8f, 0.4f),
-			vec3(0.0f, 0.0f, 0.0f)
-		)
-	);
+	static shared_ptr<Player> player;
 
 
 	static constexpr vec3 colorAsVec3(GLuint color) {
@@ -89,13 +83,15 @@ namespace hack_game {
 	}
 
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
-		player.onKey(key, action);
+		player->onKey(key, action);
 
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, GL_TRUE);
 	}
-}
 
+
+	static void empty_deleter(Entity*) {}
+}
 
 int main() {
 	using namespace hack_game;
@@ -105,9 +101,9 @@ int main() {
 	GLuint mainShaderProgram = createShaderProgram("shaders/main.vert", "shaders/main.frag");
 	GLuint lightShaderProgram = createShaderProgram("shaders/light.vert", "shaders/light.frag");
 
-	platform.generateVertexArray();
-	cube.generateVertexArray();
-	mc.generateVertexArray();
+	for (Model* model : models) {
+		model->generateVertexArray();
+	}
 	
 	// Настраиваем опции OpenGL
 	glEnable(GL_DEPTH_TEST);
@@ -115,41 +111,73 @@ int main() {
 
 	initShaderUniforms(mainShaderProgram, lightShaderProgram);
 
-	GLuint modelLoc      = glGetUniformLocation(mainShaderProgram, "model");
-	GLuint viewLoc       = glGetUniformLocation(mainShaderProgram, "view");
-	GLuint modelColorLoc = glGetUniformLocation(mainShaderProgram, "modelColor");
-	GLuint lightViewLoc  = glGetUniformLocation(lightShaderProgram, "view");
+	GLuint modelLoc           = glGetUniformLocation(mainShaderProgram, "model");
+	GLuint viewLoc            = glGetUniformLocation(mainShaderProgram, "view");
+	GLuint modelColorLoc      = glGetUniformLocation(mainShaderProgram, "modelColor");
+
+	GLuint lightModelLoc      = glGetUniformLocation(lightShaderProgram, "model");
+	GLuint lightViewLoc       = glGetUniformLocation(lightShaderProgram, "view");
+	GLuint lightModelColorLoc = glGetUniformLocation(lightShaderProgram, "modelColor");
+
+
+	DrawContext mainDrawContext {
+		.shaderProgram = mainShaderProgram,
+		.modelLocation = modelLoc,
+		.modelColorLocation = modelColorLoc,
+	};
+
+	DrawContext lightDrawContext {
+		.shaderProgram = lightShaderProgram,
+		.modelLocation = lightModelLoc,
+		.modelColorLocation = lightModelColorLoc,
+	};
+
+	Block blocks[] = {
+		Block(mainDrawContext, glm::ivec2(5,  5),  cubeModel),
+		Block(mainDrawContext, glm::ivec2(10, 10), cubeModel),
+		Block(mainDrawContext, glm::ivec2(11, 10), cubeModel),
+		Block(mainDrawContext, glm::ivec2(10, 11), cubeModel),
+		Block(mainDrawContext, glm::ivec2(11, 11), cubeModel),
+	};
 
 
 	const size_t mapWidth = 20;
 	const size_t mapHeight = 20;
-
-	Block blocks[] = {
-		Block(glm::ivec2(5, 5), cube, mainShaderProgram, modelLoc),
-		Block(glm::ivec2(10, 10), cube, mainShaderProgram, modelLoc),
-		Block(glm::ivec2(11, 10), cube, mainShaderProgram, modelLoc),
-		Block(glm::ivec2(10, 11), cube, mainShaderProgram, modelLoc),
-		Block(glm::ivec2(11, 11), cube, mainShaderProgram, modelLoc),
-	};
 
 	vector<dynamic_bitset<>> map(mapWidth, dynamic_bitset<>(mapHeight));
 	for (Block& block : blocks) {
 		map[block.pos.x][block.pos.y] = true;
 	}
 
-	for (size_t y = 0; y < mapHeight; y++) {
-		for (size_t x = 0; x < mapWidth; x++) {
-			printf("%d ", bool(map[x][y]));
-		}
 
-		printf("\n");
+	TickContext tickContext(map);
+
+	player = std::make_shared<Player>(
+		mainDrawContext,
+		lightDrawContext,
+		playerModel,
+		0.5f,
+		Camera(
+			vec3(0.0f, 0.8f, 0.4f),
+			vec3(0.0f, 0.0f, 0.0f)
+		)
+	);
+
+	tickContext.addEntity(player);
+
+	for (Block& block : blocks) {
+		tickContext.addEntity(shared_ptr<Entity>(&block, empty_deleter));
 	}
 
+	tickContext.updateEntities();
+
+	const mat4 modelNoTransform(1.0f);
+	const mat4 lightModel = glm::translate(modelNoTransform, lightPos);
 
 	// Main loop
 	for (float lastFrame = 0; !glfwWindowShouldClose(window);) {
 		float currentFrame = glfwGetTime();
-		float deltaTime = currentFrame - lastFrame;
+		tickContext.deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
 		glfwPollEvents();
@@ -158,26 +186,32 @@ int main() {
 		glClearColor(background.r, background.g, background.b, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		player.move(deltaTime, map);
+		for (const auto& entity : tickContext.getEntities()) {
+			entity->tick(tickContext);
+		}
+
+		tickContext.updateEntities();
+
 
 		glUseProgram(mainShaderProgram);
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, value_ptr(player.getCamera().getView()));
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
 
 		mat4 model(1.0f);
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, value_ptr(model));
-		platform.draw(modelColorLoc);
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, value_ptr(modelNoTransform));
+		platformModel.draw(mainDrawContext);
 
-		player.draw(modelLoc, modelColorLoc);
-		
-		for (const Block& block : blocks) {
-			block.draw(modelColorLoc);
+
+		for (const auto& entity : tickContext.getEntities()) {
+			entity->draw();
 		}
 
 
 		glUseProgram(lightShaderProgram);
-		glUniformMatrix4fv(lightViewLoc, 1, GL_FALSE, value_ptr(player.getCamera().getView()));
+		glUniform3fv(lightModelColorLoc, 1, value_ptr(lightColor));
+		glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, value_ptr(lightModel));
+		glUniformMatrix4fv(lightViewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
 
-		cube.draw(0);
+		cubeModel.draw(lightDrawContext);
 
 		glfwSwapBuffers(window);
 	}

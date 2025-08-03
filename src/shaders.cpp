@@ -18,7 +18,7 @@ namespace hack_game {
 	using glm::perspective;
 	using glm::value_ptr;
 
-	const GLuint LOG_SIZE = 512;
+	const size_t LOG_SIZE = 512;
 
 	GLuint compileShader(GLenum type, const char* filename) {
 		ifstream file(filename, ios::ate);
@@ -44,7 +44,7 @@ namespace hack_game {
 		
 		if (!success) {
 			GLchar infoLog[LOG_SIZE];
-			glGetShaderInfoLog(shader, LOG_SIZE, NULL, infoLog);
+			glGetShaderInfoLog(shader, LOG_SIZE, nullptr, infoLog);
 			
 			const char* strType =
 					type == GL_VERTEX_SHADER ? "VERTEX" :
@@ -99,33 +99,24 @@ namespace hack_game {
 	}
 
 	void initShaderUniforms(GLuint mainShaderProgram, GLuint lightShaderProgram) {
+		const mat4 projection = perspective(45.0f, GLfloat(width) / GLfloat(height), 0.1f, 100.0f);
+		
+		
+		glUseProgram(mainShaderProgram);
+
 		GLuint projectionLoc = glGetUniformLocation(mainShaderProgram, "projection");
 		GLuint lightColorLoc = glGetUniformLocation(mainShaderProgram, "lightColor");
 		GLuint lightPosLoc   = glGetUniformLocation(mainShaderProgram, "lightPos");
 
-		GLuint lightProjectionLoc = glGetUniformLocation(lightShaderProgram, "projection");
-		GLuint lightLightColorLoc = glGetUniformLocation(lightShaderProgram, "lightColor");
-		GLuint lightModelLoc      = glGetUniformLocation(lightShaderProgram, "model");
-		
-		glUseProgram(mainShaderProgram);
-
-		mat4 projection = perspective(45.0f, GLfloat(width) / GLfloat(height), 0.1f, 100.0f);
 		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, value_ptr(projection));
-
-		vec3 lightColor(1.0f, 1.0f, 1.0f);
 		glUniform3fv(lightColorLoc, 1, value_ptr(lightColor));
-		
-		vec3 lightPos(1.0f, 0.75f, -1.0f);
 		glUniform3fv(lightPosLoc, 1, value_ptr(lightPos));
 
 
 		glUseProgram(lightShaderProgram);
 
-		glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, value_ptr(projection));
-		glUniform3fv(lightLightColorLoc, 1, value_ptr(lightColor));
+		GLuint lightProjectionLoc = glGetUniformLocation(lightShaderProgram, "projection");
 
-		mat4 lightModel(1.0f);
-		lightModel = translate(lightModel, lightPos);
-		glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, value_ptr(lightModel));
+		glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, value_ptr(projection));
 	}
 }

@@ -91,17 +91,18 @@ namespace hack_game {
 		this->vertexArray = VAO;
 	}
 
-	void Model::draw(GLuint modelColorLocation) const {
+	void Model::draw(DrawContext& context) const {
+		glUseProgram(context.shaderProgram);
+
+		glm::vec3 vertexColor(
+			((color >> 16) & 0xFF) / 255.0f,
+			((color >>  8) & 0xFF) / 255.0f,
+			((color      ) & 0xFF) / 255.0f
+		);
+
+		glUniform3fv(context.modelColorLocation, 1, glm::value_ptr(vertexColor));
+
 		assert(vertexArray != 0);
-		
-		if (modelColorLocation != 0) {
-			glm::vec3 vertexColor(
-				((color >> 16) & 0xFF) / 255.0f,
-				((color >>  8) & 0xFF) / 255.0f,
-				((color      ) & 0xFF) / 255.0f
-			);
-			glUniform3fv(modelColorLocation, 1, glm::value_ptr(vertexColor));
-		}
 
 		glBindVertexArray(vertexArray);
 		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
