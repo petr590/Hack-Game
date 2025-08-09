@@ -28,4 +28,13 @@ namespace hack_game {
 			addedEntities.clear();
 		}
 	}
+
+	glm::vec4 TickContext::getBlockHitbox(uint32_t x, uint32_t y) {
+		return glm::vec4(
+			(x + 0.5f) * TILE_SIZE - BLOCK_SIZE / 2,
+			(y + 0.5f) * TILE_SIZE - BLOCK_SIZE / 2,
+			(x + 0.5f) * TILE_SIZE + BLOCK_SIZE / 2,
+			(y + 0.5f) * TILE_SIZE + BLOCK_SIZE / 2
+		);
+	}
 }

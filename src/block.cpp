@@ -20,4 +20,13 @@ namespace hack_game {
 
 		this->model.draw(drawContext);
 	}
+
+	void Block::damage(TickContext& context, float damage) {
+		hitpoints -= damage;
+
+		if (hitpoints <= 0) {
+			context.map[pos.x][pos.y] = nullptr;
+			context.removeEntity(shared_from_this());
+		}
+	}
 }

@@ -11,7 +11,6 @@ namespace hack_game {
 	using std::clamp;
 	using std::vector;
 	using std::make_shared;
-	using boost::dynamic_bitset;
 
 	using glm::ivec2;
 	using glm::vec2;
@@ -37,9 +36,24 @@ namespace hack_game {
 			model(model),
 			speed(speed),
 			camera(camera),
-			pos(TILE_SIZE * 8, 0.0f, TILE_SIZE * 8) {
+			pos(TILE_SIZE * 8, TILE_SIZE / 2, TILE_SIZE * 8) {
 		
 		this->camera.move(pos);
+	}
+
+	void Player::updateAngle(float newTargetAngle) {
+		targetAngle = newTargetAngle;
+
+		if (angle > targetAngle) {
+			if (angle - targetAngle > radians(180.f)) {
+				angle -= radians(360.f);
+			}
+
+		} else {
+			if (targetAngle - angle > radians(180.f)) {
+				angle += radians(360.f);
+			}
+		}
 	}
 
 	void Player::onKey(int key, int action) {
@@ -54,10 +68,10 @@ namespace hack_game {
 
 			case GLFW_KEY_LEFT_SHIFT: fire = value; break;
 
-			case GLFW_KEY_UP:    angle = radians(0.0f);   break;
-			case GLFW_KEY_LEFT:  angle = radians(90.0f);  break;
-			case GLFW_KEY_DOWN:  angle = radians(180.0f); break;
-			case GLFW_KEY_RIGHT: angle = radians(270.0f); break;
+			case GLFW_KEY_UP:    updateAngle(radians(0.f));    break;
+			case GLFW_KEY_LEFT:  updateAngle(radians(90.f));   break;
+			case GLFW_KEY_DOWN:  updateAngle(radians(180.f));  break;
+			case GLFW_KEY_RIGHT: updateAngle(radians(270.f));  break;
 
 			// case GLFW_KEY_Z:
 			// 	printf("(%.2f, %.2f, %.2f)\n", camera.target.x, camera.target.y, camera.target.z);
@@ -109,7 +123,7 @@ namespace hack_game {
 	}
 
 
-	static vec2 moveWithCollisions(const vec3& playerPos, vec2 offset, const vector<dynamic_bitset<>>& map) {
+	static vec2 moveWithCollisions(const vec3& playerPos, vec2 offset, const map_t& map) {
 		const int32_t minMapX = clamp((playerPos.x - PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map.size() - 1));
 		const int32_t minMapZ = clamp((playerPos.z - PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map[0].size() - 1));
 		const int32_t maxMapX = clamp((playerPos.x + PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map.size() - 1));
@@ -129,7 +143,7 @@ namespace hack_game {
 		// printf("GG\n");
 
 		for (const ivec2& mapPos : mapPositions) {
-			if (!map[mapPos.x][mapPos.y]) continue;
+			if (map[mapPos.x][mapPos.y] == nullptr) continue;
 
 			box2 cube(
 				vec2(mapPos) * TILE_SIZE,
@@ -180,9 +194,20 @@ namespace hack_game {
 	}
 
 
+	const float ROTATE_SPEED = 360 * 3;
+
 	void Player::tick(TickContext& context) {
 		move(context);
 
+		if (angle != targetAngle) {
+			float delta = radians(ROTATE_SPEED) * context.deltaTime;
+
+			if (angle > targetAngle) {
+				angle = max(angle - delta, targetAngle);
+			} else {
+				angle = min(angle + delta, targetAngle);
+			}
+		}
 
 		timeSinceLastBullet += context.deltaTime;
 

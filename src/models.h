@@ -2,6 +2,12 @@
 #include <vector>
 
 namespace hack_game {
-	extern Model platformModel, cubeModel, playerModel, playerBulletModel;
+	extern Model
+			platformModel,
+			breakableCubeModel,
+			unbreakableCubeModel,
+			playerModel,
+			playerBulletModel;
+	
 	extern const std::vector<Model*> models;
 }

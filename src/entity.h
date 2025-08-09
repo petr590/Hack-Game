@@ -6,7 +6,6 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
-#include <boost/dynamic_bitset.hpp>
 
 namespace hack_game {
 
@@ -14,10 +13,13 @@ namespace hack_game {
 	const float BLOCK_SIZE = 0.04f;
 
 	class Entity;
+	class Block;
+
+	using map_t = std::vector<std::vector<Block*>>;
 
 	struct TickContext {
 		float deltaTime = 0;
-		const std::vector<boost::dynamic_bitset<>>& map;
+		map_t& map;
 
 	private:
 		std::vector<std::shared_ptr<Entity>> entities;
@@ -25,8 +27,7 @@ namespace hack_game {
 		std::vector<std::shared_ptr<Entity>> removedEntities;
 
 	public:
-		TickContext(const std::vector<boost::dynamic_bitset<>>& map):
-				map(map) {}
+		TickContext(map_t& map): map(map) {}
 
 		float maxX() const {
 			return map.size() - 1;
@@ -36,14 +37,7 @@ namespace hack_game {
 			return map[0].size() - 1;
 		}
 
-		static glm::vec4 getBlockHitbox(uint32_t x, uint32_t y) {
-			return glm::vec4(
-				x * TILE_SIZE - BLOCK_SIZE / 2,
-				y * TILE_SIZE - BLOCK_SIZE / 2,
-				x * TILE_SIZE + BLOCK_SIZE / 2,
-				y * TILE_SIZE + BLOCK_SIZE / 2
-			);
-		}
+		static glm::vec4 getBlockHitbox(uint32_t x, uint32_t y);
 
 
 		const std::vector<std::shared_ptr<Entity>>& getEntities() const {

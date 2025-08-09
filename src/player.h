@@ -4,10 +4,7 @@
 #include "entity.h"
 #include "model.h"
 #include "camera.h"
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <boost/dynamic_bitset.hpp>
 
 namespace hack_game {
 
@@ -24,6 +21,7 @@ namespace hack_game {
 		bool right = false;
 		bool fire  = false;
 		float angle = 0.0f;
+		float targetAngle = 0.0f;
 
 		float timeSinceLastBullet = 0.0f;
 
@@ -39,6 +37,7 @@ namespace hack_game {
 		void draw() const override;
 
 	private:
+		void updateAngle(float targetAngle);
 		void move(TickContext&);
 	};
 }

@@ -21,8 +21,8 @@ namespace hack_game {
 	using std::endl;
 	using std::vector;
 	using std::shared_ptr;
-	using boost::dynamic_bitset;
 
+	using glm::ivec2;
 	using glm::vec3;
 	using glm::mat4;
 	using glm::value_ptr;
@@ -83,6 +83,10 @@ namespace hack_game {
 	}
 
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+		 // Suppress compiler's warning
+		(void)scancode;
+		(void)mode;
+
 		player->onKey(key, action);
 
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -133,20 +137,24 @@ int main() {
 	};
 
 	Block blocks[] = {
-		Block(mainDrawContext, glm::ivec2(5,  5),  cubeModel),
-		Block(mainDrawContext, glm::ivec2(10, 10), cubeModel),
-		Block(mainDrawContext, glm::ivec2(11, 10), cubeModel),
-		Block(mainDrawContext, glm::ivec2(10, 11), cubeModel),
-		Block(mainDrawContext, glm::ivec2(11, 11), cubeModel),
+		Block::breakable(mainDrawContext, ivec2(2, 0)),
+		Block::breakable(mainDrawContext, ivec2(3, 0)),
+		Block::breakable(mainDrawContext, ivec2(4, 0)),
+
+		Block::unbreakable(mainDrawContext, ivec2(5,  5)),
+		Block::unbreakable(mainDrawContext, ivec2(10, 10)),
+		Block::unbreakable(mainDrawContext, ivec2(11, 10)),
+		Block::unbreakable(mainDrawContext, ivec2(10, 11)),
+		Block::unbreakable(mainDrawContext, ivec2(11, 11)),
 	};
 
 
 	const size_t mapWidth = 20;
 	const size_t mapHeight = 20;
 
-	vector<dynamic_bitset<>> map(mapWidth, dynamic_bitset<>(mapHeight));
+	map_t map(mapWidth, vector<Block*>(mapHeight));
 	for (Block& block : blocks) {
-		map[block.pos.x][block.pos.y] = true;
+		map[block.pos.x][block.pos.y] = &block;
 	}
 
 
@@ -211,7 +219,7 @@ int main() {
 		glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, value_ptr(lightModel));
 		glUniformMatrix4fv(lightViewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
 
-		cubeModel.draw(lightDrawContext);
+		unbreakableCubeModel.draw(lightDrawContext);
 
 		glfwSwapBuffers(window);
 	}
