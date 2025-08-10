@@ -1,14 +1,10 @@
-#define GLEW_STATIC
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <iostream>
-
-#include "block.h"
 #include "models.h"
+#include "block.h"
 #include "player.h"
 #include "shaders.h"
+
+#include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
 namespace hack_game {
 	GLuint width = 0;
@@ -22,7 +18,7 @@ namespace hack_game {
 	using std::vector;
 	using std::shared_ptr;
 
-	using glm::ivec2;
+	using glm::uvec2;
 	using glm::vec3;
 	using glm::mat4;
 	using glm::value_ptr;
@@ -105,7 +101,7 @@ int main() {
 	GLuint mainShaderProgram = createShaderProgram("shaders/main.vert", "shaders/main.frag");
 	GLuint lightShaderProgram = createShaderProgram("shaders/light.vert", "shaders/light.frag");
 
-	for (Model* model : models) {
+	for (Model* model : Model::getModels()) {
 		model->generateVertexArray();
 	}
 	
@@ -115,13 +111,13 @@ int main() {
 
 	initShaderUniforms(mainShaderProgram, lightShaderProgram);
 
-	GLuint modelLoc           = glGetUniformLocation(mainShaderProgram, "model");
-	GLuint viewLoc            = glGetUniformLocation(mainShaderProgram, "view");
-	GLuint modelColorLoc      = glGetUniformLocation(mainShaderProgram, "modelColor");
+	const GLuint modelLoc           = glGetUniformLocation(mainShaderProgram, "model");
+	const GLuint viewLoc            = glGetUniformLocation(mainShaderProgram, "view");
+	const GLuint modelColorLoc      = glGetUniformLocation(mainShaderProgram, "modelColor");
 
-	GLuint lightModelLoc      = glGetUniformLocation(lightShaderProgram, "model");
-	GLuint lightViewLoc       = glGetUniformLocation(lightShaderProgram, "view");
-	GLuint lightModelColorLoc = glGetUniformLocation(lightShaderProgram, "modelColor");
+	const GLuint lightModelLoc      = glGetUniformLocation(lightShaderProgram, "model");
+	const GLuint lightViewLoc       = glGetUniformLocation(lightShaderProgram, "view");
+	const GLuint lightModelColorLoc = glGetUniformLocation(lightShaderProgram, "modelColor");
 
 
 	DrawContext mainDrawContext {
@@ -137,24 +133,28 @@ int main() {
 	};
 
 	Block blocks[] = {
-		Block::breakable(mainDrawContext, ivec2(2, 0)),
-		Block::breakable(mainDrawContext, ivec2(3, 0)),
-		Block::breakable(mainDrawContext, ivec2(4, 0)),
+		Block::breakable(mainDrawContext, uvec2(2, 0)),
+		Block::breakable(mainDrawContext, uvec2(3, 0)),
+		Block::breakable(mainDrawContext, uvec2(4, 0)),
 
-		Block::unbreakable(mainDrawContext, ivec2(5,  5)),
-		Block::unbreakable(mainDrawContext, ivec2(10, 10)),
-		Block::unbreakable(mainDrawContext, ivec2(11, 10)),
-		Block::unbreakable(mainDrawContext, ivec2(10, 11)),
-		Block::unbreakable(mainDrawContext, ivec2(11, 11)),
+		Block::unbreakable(mainDrawContext, uvec2(5,  5)),
+		Block::unbreakable(mainDrawContext, uvec2(10, 5)),
+		Block::unbreakable(mainDrawContext, uvec2(10, 6)),
+		Block::unbreakable(mainDrawContext, uvec2(11, 6)),
+		Block::unbreakable(mainDrawContext, uvec2(10, 10)),
+		Block::unbreakable(mainDrawContext, uvec2(11, 10)),
+		Block::unbreakable(mainDrawContext, uvec2(10, 11)),
+		Block::unbreakable(mainDrawContext, uvec2(11, 11)),
 	};
 
 
 	const size_t mapWidth = 20;
 	const size_t mapHeight = 20;
 
-	map_t map(mapWidth, vector<Block*>(mapHeight));
+	Map map(mapWidth, mapHeight);
+	
 	for (Block& block : blocks) {
-		map[block.pos.x][block.pos.y] = &block;
+		map[block.pos] = &block;
 	}
 
 
@@ -163,7 +163,6 @@ int main() {
 	player = std::make_shared<Player>(
 		mainDrawContext,
 		lightDrawContext,
-		playerModel,
 		0.5f,
 		Camera(
 			vec3(0.0f, 0.8f, 0.4f),
@@ -215,11 +214,10 @@ int main() {
 
 
 		glUseProgram(lightShaderProgram);
-		glUniform3fv(lightModelColorLoc, 1, value_ptr(lightColor));
 		glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, value_ptr(lightModel));
 		glUniformMatrix4fv(lightViewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
 
-		unbreakableCubeModel.draw(lightDrawContext);
+		lightCubeModel.draw(lightDrawContext);
 
 		glfwSwapBuffers(window);
 	}

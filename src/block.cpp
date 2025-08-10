@@ -3,14 +3,27 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
+	using glm::vec2;
+	using glm::vec3;
+	using glm::mat4;
+
+	AABB Block::getHitbox() const {
+		vec2 center = (vec2(pos) + 0.5f) * TILE_SIZE;
+
+		return AABB(
+			center - TILE_SIZE / 2,
+			center + TILE_SIZE / 2
+		);
+	}
+
 	void Block::tick(TickContext&) {}
 
 	void Block::draw() const {
 		Entity::draw();
 
-		glm::mat4 model(1.0f);
+		mat4 model(1.0f);
 
-		model = glm::translate(model, glm::vec3(
+		model = glm::translate(model, vec3(
 			TILE_SIZE * (pos.x + 0.5f),
 			0.0f,
 			TILE_SIZE * (pos.y + 0.5f)
@@ -25,7 +38,7 @@ namespace hack_game {
 		hitpoints -= damage;
 
 		if (hitpoints <= 0) {
-			context.map[pos.x][pos.y] = nullptr;
+			context.map[pos] = nullptr;
 			context.removeEntity(shared_from_this());
 		}
 	}

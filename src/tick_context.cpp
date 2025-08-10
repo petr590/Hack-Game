@@ -1,9 +1,20 @@
-#include "entity.h"
+#include "tick_context.h"
+#include <algorithm>
 
 namespace hack_game {
-
+	using std::clamp;
 	using std::find;
 	using std::make_move_iterator;
+
+	using glm::uvec2;
+	using glm::vec2;
+
+	uvec2 TickContext::getMapPos(const vec2& pos) const noexcept {
+		return uvec2(
+			clamp(pos.x * (1.0f / TILE_SIZE), 0.0f, float(map.width() - 1)),
+			clamp(pos.y * (1.0f / TILE_SIZE), 0.0f, float(map.height() - 1))
+		);
+	}
 
 	void TickContext::updateEntities() {
 		if (!removedEntities.empty()) {
@@ -27,14 +38,5 @@ namespace hack_game {
 			
 			addedEntities.clear();
 		}
-	}
-
-	glm::vec4 TickContext::getBlockHitbox(uint32_t x, uint32_t y) {
-		return glm::vec4(
-			(x + 0.5f) * TILE_SIZE - BLOCK_SIZE / 2,
-			(y + 0.5f) * TILE_SIZE - BLOCK_SIZE / 2,
-			(x + 0.5f) * TILE_SIZE + BLOCK_SIZE / 2,
-			(y + 0.5f) * TILE_SIZE + BLOCK_SIZE / 2
-		);
 	}
 }

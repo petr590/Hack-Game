@@ -1,39 +1,32 @@
 #include "player.h"
+#include "block.h"
 #include "bullet.h"
 #include "models.h"
 #include <algorithm>
+#include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
 	using std::max;
 	using std::min;
-	using std::clamp;
 	using std::vector;
 	using std::make_shared;
 
-	using glm::ivec2;
+	using glm::uvec2;
 	using glm::vec2;
 	using glm::vec3;
 	using glm::mat4;
 	using glm::quat;
-	using glm::length;
-	using glm::radians;
-	using glm::angleAxis;
-	using glm::normalize;
-	using glm::translate;
-	using glm::rotate;
-	using glm::scale;
 
-	const float PLAYER_RADIUS = 0.03f;
-
+	const float PAD = 0.015f;
 	const float BULLET_PERIOD = 0.05f;
 
 
-	Player::Player(DrawContext& drawContext, DrawContext& bulletDrawContext, const Model& model, float speed, const Camera& camera):
+	Player::Player(DrawContext& drawContext, DrawContext& bulletDrawContext, float speed, const Camera& camera):
 			Entity(drawContext),
 			bulletDrawContext(bulletDrawContext),
-			model(model),
+			model(playerModel),
 			speed(speed),
 			camera(camera),
 			pos(TILE_SIZE * 8, TILE_SIZE / 2, TILE_SIZE * 8) {
@@ -45,13 +38,13 @@ namespace hack_game {
 		targetAngle = newTargetAngle;
 
 		if (angle > targetAngle) {
-			if (angle - targetAngle > radians(180.f)) {
-				angle -= radians(360.f);
+			if (angle - targetAngle > glm::radians(180.f)) {
+				angle -= glm::radians(360.f);
 			}
 
 		} else {
-			if (targetAngle - angle > radians(180.f)) {
-				angle += radians(360.f);
+			if (targetAngle - angle > glm::radians(180.f)) {
+				angle += glm::radians(360.f);
 			}
 		}
 	}
@@ -68,10 +61,10 @@ namespace hack_game {
 
 			case GLFW_KEY_LEFT_SHIFT: fire = value; break;
 
-			case GLFW_KEY_UP:    updateAngle(radians(0.f));    break;
-			case GLFW_KEY_LEFT:  updateAngle(radians(90.f));   break;
-			case GLFW_KEY_DOWN:  updateAngle(radians(180.f));  break;
-			case GLFW_KEY_RIGHT: updateAngle(radians(270.f));  break;
+			case GLFW_KEY_UP:    updateAngle(glm::radians(0.f));    break;
+			case GLFW_KEY_LEFT:  updateAngle(glm::radians(90.f));   break;
+			case GLFW_KEY_DOWN:  updateAngle(glm::radians(180.f));  break;
+			case GLFW_KEY_RIGHT: updateAngle(glm::radians(270.f));  break;
 
 			// case GLFW_KEY_Z:
 			// 	printf("(%.2f, %.2f, %.2f)\n", camera.target.x, camera.target.y, camera.target.z);
@@ -84,76 +77,49 @@ namespace hack_game {
 	}
 
 
-	struct box2 {
-		float sx, sy, ex, ey;
-
-		box2(float sx, float sy, float ex, float ey):
-			sx(sx), sy(sy), ex(ex), ey(ey) {}
-
-		box2(const vec2& start, const vec2& end):
-			sx(start.x), sy(start.y), ex(end.x), ey(end.y) {}
-	};
+	static const float EPSILON = 1e-6f;
 
 
-	static vec2 getOffset(const vec2& center, float radius, const box2& cube) {
-		float dx = center.x - clamp(center.x, cube.sx, cube.ex);
-		float dy = center.y - clamp(center.y, cube.sy, cube.ey);
-
-		// printf("center.x = %.4f, cube.sx = %.4f, cube.ex = %.4f\n", center.x, cube.sx, cube.ex);
-		// printf("center.y = %.4f, cube.sy = %.4f, cube.ey = %.4f\n", center.y, cube.sy, cube.ey);
-
-		// printf("dx = %.4f, dy = %.4f, radius = %.4f\n", dx, dy, radius);
-
-		if (dx*dx + dy*dy < radius * radius) {
-			// printf("collision\n");
-
-			// printf("dx = %.4f, dy = %.4f, radius = %.4f\n", dx, dy, radius);
-
-			if (dx == 0 && dy == 0) {
-				// printf("ZERO\n");
-				return vec2(0.0f); // TODO
-			}
-
-			vec2 dist(dx, dy);
-			return normalize(dist) * radius - dist;
+	static vec2 resolveCollision(const TickContext& context, const vec2& pos, vec2 offset, const uvec2& mapPos) {
+		if (context.map[mapPos] == nullptr) {
+			return offset;
 		}
 
-		// printf("no collision\n");
-		return vec2(0.0f);
+		AABB block = context.map[mapPos]->getHitbox();
+
+		vec2 newPos = pos + offset;
+		
+		if (offset.x != 0 && block.containsInclusive(vec2(newPos.x, pos.y))) {
+			if (offset.x > 0) offset.x = max(0.0f, offset.x + (block.min.x - newPos.x - EPSILON));
+			else              offset.x = min(0.0f, offset.x + (block.max.x - newPos.x + EPSILON));
+		}
+
+		if (offset.y != 0 && block.containsInclusive(vec2(pos.x, newPos.y))) {
+			if (offset.y > 0) offset.y = max(0.0f, offset.y + (block.min.y - newPos.y - EPSILON));
+			else              offset.y = min(0.0f, offset.y + (block.max.y - newPos.y + EPSILON));
+		}
+
+		return offset;
 	}
 
 
-	static vec2 moveWithCollisions(const vec3& playerPos, vec2 offset, const map_t& map) {
-		const int32_t minMapX = clamp((playerPos.x - PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map.size() - 1));
-		const int32_t minMapZ = clamp((playerPos.z - PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map[0].size() - 1));
-		const int32_t maxMapX = clamp((playerPos.x + PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map.size() - 1));
-		const int32_t maxMapZ = clamp((playerPos.z + PLAYER_RADIUS / 2) / TILE_SIZE, 0.0f, float(map[0].size() - 1));
+	static vec2 moveWithCollisions(const TickContext& context, const vec2& pos, vec2 offset) {
+		const vec2 newPos = pos + offset;
+		const uvec2 minPos = context.getMapPos(glm::min(pos, newPos) - EPSILON);
+		const uvec2 maxPos = context.getMapPos(glm::max(pos, newPos) + EPSILON);
 
-		vector<ivec2> mapPositions;
-		mapPositions.reserve(4);
+		offset = resolveCollision(context, pos, offset, minPos);
 
-		mapPositions.emplace_back(minMapX, minMapZ);
-		if (maxMapZ != minMapZ) mapPositions.emplace_back(minMapX, maxMapZ);
-
-		if (maxMapX != minMapX) {
-			mapPositions.emplace_back(maxMapX, minMapZ);
-			if (maxMapZ != minMapZ) mapPositions.emplace_back(maxMapX, maxMapZ);
+		if (minPos.x != maxPos.x) {
+			offset = resolveCollision(context, pos, offset, uvec2(maxPos.x, minPos.y));
 		}
 
-		// printf("GG\n");
+		if (minPos.y != maxPos.y) {
+			offset = resolveCollision(context, pos, offset, uvec2(minPos.x, maxPos.y));
 
-		for (const ivec2& mapPos : mapPositions) {
-			if (map[mapPos.x][mapPos.y] == nullptr) continue;
-
-			box2 cube(
-				vec2(mapPos) * TILE_SIZE,
-				vec2(mapPos + 1) * TILE_SIZE
-			);
-
-			vec2 newPos = vec2(playerPos.x, playerPos.z) + offset;
-			vec2 off = getOffset(newPos, PLAYER_RADIUS, cube);
-			offset += off;
-			// printf("off = (%.4f, %.4f)\n", off.x, off.y);
+			if (minPos.x != maxPos.x) {
+				offset = resolveCollision(context, pos, offset, maxPos);
+			}
 		}
 
 		return offset;
@@ -166,22 +132,18 @@ namespace hack_game {
 			up ? -1 : down ? 1 : 0
 		);
 
-		if (length(offset) == 0) return;
+		if (glm::length(offset) == 0) return;
 
-		offset = normalize(offset) * speed * context.deltaTime;
-		offset = moveWithCollisions(pos, offset, context.map);
-
-		// printf("player: (%.4f, %.4f, %.4f)\n", pos.x, pos.y, pos.z);
-		// printf("offset: (%.4f, %.4f, %.4f)\n", offset.x, 0.0f, offset.y);
+		offset = glm::normalize(offset) * speed * context.deltaTime;
+		offset = moveWithCollisions(context, vec2(pos.x, pos.z), offset);
 
 		vec3 offset3d(offset.x, 0.0f, offset.y);
 		pos += offset3d;
 
 		vec3 oldPos = pos;
 
-		const float PAD = PLAYER_RADIUS / 2;
-		const float endX = context.map.size() * TILE_SIZE;
-		const float endZ = context.map[0].size() * TILE_SIZE;
+		const float endX = context.map.width() * TILE_SIZE;
+		const float endZ = context.map.height() * TILE_SIZE;
 
 		pos = glm::clamp(pos,
 				vec3(       PAD, -INFINITY,        PAD),
@@ -189,7 +151,6 @@ namespace hack_game {
 		);
 
 		offset3d += pos - oldPos;
-
 		camera.move(offset3d);
 	}
 
@@ -200,7 +161,7 @@ namespace hack_game {
 		move(context);
 
 		if (angle != targetAngle) {
-			float delta = radians(ROTATE_SPEED) * context.deltaTime;
+			float delta = glm::radians(ROTATE_SPEED) * context.deltaTime;
 
 			if (angle > targetAngle) {
 				angle = max(angle - delta, targetAngle);

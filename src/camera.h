@@ -1,7 +1,8 @@
 #ifndef HACK_GAME_CAMERA_H
 #define HACK_GAME_CAMERA_H
 
-#include <glm/glm.hpp>
+#include <glm/vec3.hpp>
+#include <glm/mat4x4.hpp>
 
 namespace hack_game {
 	class Camera {

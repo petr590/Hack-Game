@@ -32,7 +32,7 @@ add_executable(main
 	src/main.cpp
 	src/model.cpp
 	src/models.cpp
-	src/entity.cpp
+	src/tick_context.cpp
 	src/block.cpp
 	src/camera.cpp
 	src/player.cpp

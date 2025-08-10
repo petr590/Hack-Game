@@ -4,7 +4,6 @@
 #include "entity.h"
 #include "model.h"
 #include "camera.h"
-#include <GLFW/glfw3.h>
 
 namespace hack_game {
 
@@ -26,7 +25,7 @@ namespace hack_game {
 		float timeSinceLastBullet = 0.0f;
 
 	public:
-		Player(DrawContext& drawContext, DrawContext& bulletDrawContext, const Model&, float speed, const Camera&);
+		Player(DrawContext& drawContext, DrawContext& bulletDrawContext, float speed, const Camera&);
 		
 		Camera& getCamera() {
 			return camera;

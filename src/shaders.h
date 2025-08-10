@@ -3,7 +3,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
+#include <glm/vec3.hpp>
 
 namespace hack_game {
 	extern GLuint width, height;

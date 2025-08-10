@@ -1,19 +1,21 @@
 #include "model.h"
 #include <glm/gtc/type_ptr.hpp>
-#include <iostream>
+#include <map>
 #include <fstream>
 #include <cassert>
 
 namespace hack_game {
 	using glm::vec3;
 
-	using std::cerr;
-	using std::endl;
 	using std::string;
 	using std::vector;
+	using std::map;
+	using std::pair;
 	using std::ifstream;
 	using std::numeric_limits;
 	using std::streamsize;
+
+	vector<Model*> Model::models;
 
 	Model::Model(GLuint color, const string& path): color(color) {
 		ifstream file(path);
@@ -25,6 +27,7 @@ namespace hack_game {
 
 		vector<vec3> vertexes;
 		vector<vec3> normals;
+		map<pair<uint32_t, uint32_t>, uint32_t> verticesMap;
 
 		for (string tag; file >> tag;) {
 
@@ -48,10 +51,19 @@ namespace hack_game {
 					file.ignore(numeric_limits<streamsize>::max(), '/');
 
 					uint32_t ni; file >> ni;
+					vi--, ni--;
 
-					// TODO optimize
-					vertices.emplace_back(vertexes[vi - 1], normals[ni - 1]);
-					indices.push_back(vertices.size() - 1);
+					auto it = verticesMap.find({vi, ni});
+
+					if (it != verticesMap.end()) {
+						indices.push_back(it->second);
+					} else {
+						vertices.emplace_back(vertexes[vi], normals[ni]);
+						
+						uint32_t index = vertices.size() - 1;
+						verticesMap[{vi, ni}] = index;
+						indices.push_back(index);
+					}
 				}
 
 				if (file.get() != '\n') {
@@ -63,6 +75,8 @@ namespace hack_game {
 
 			file.ignore(numeric_limits<streamsize>::max(), '\n');
 		}
+
+		models.push_back(this);
 	}
 
 	void Model::generateVertexArray() {
@@ -94,7 +108,7 @@ namespace hack_game {
 	void Model::draw(DrawContext& context) const {
 		glUseProgram(context.shaderProgram);
 
-		glm::vec3 vertexColor(
+		vec3 vertexColor(
 			((color >> 16) & 0xFF) / 255.0f,
 			((color >>  8) & 0xFF) / 255.0f,
 			((color      ) & 0xFF) / 255.0f

@@ -1,8 +1,9 @@
 #include "bullet.h"
 #include "block.h"
-#include <memory>
 #include <algorithm>
-#include <glm/glm.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/mat4x4.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -12,11 +13,10 @@ namespace hack_game {
 	using std::clamp;
 	using std::isinf;
 
+	using glm::uvec2;
 	using glm::vec2;
 	using glm::vec3;
-	using glm::vec4;
 	using glm::mat4;
-	using glm::quat;
 
 	static const float LIMIT = 5.0f;
 	static const float WIDTH = TILE_SIZE / 8;
@@ -24,24 +24,17 @@ namespace hack_game {
 
 
 	static bool checkCollision(const vec2& pos, TickContext& context) {
-		const uint32_t minMapX = clamp(pos.x / TILE_SIZE - 0.5f, 0.0f, context.maxX());
-		const uint32_t minMapY = clamp(pos.y / TILE_SIZE - 0.5f, 0.0f, context.maxY());
-		const uint32_t maxMapX = clamp(pos.x / TILE_SIZE + 0.5f, 0.0f, context.maxX());
-		const uint32_t maxMapY = clamp(pos.y / TILE_SIZE + 0.5f, 0.0f, context.maxY());
+		const uvec2 mapPos = context.getMapPos(pos);
 
-		for (uint32_t x = minMapX; x <= maxMapX; x++) {
-			for (uint32_t y = minMapY; y <= maxMapY; y++) {
-				if (context.map[x][y] == nullptr) continue;
+		if (context.map[mapPos] == nullptr) {
+			return false;
+		}
 
-				vec4 block = TickContext::getBlockHitbox(x, y);
+		const AABB block = context.map[mapPos]->getHitbox();
 
-				if (pos.x >= block.x && pos.x <= block.z &&
-					pos.y >= block.y && pos.y <= block.w) {
-					
-					context.map[x][y]->damage(context, 1.0f);
-					return true;
-				}
-			}
+		if (block.containsInclusive(pos)) {
+			context.map[mapPos]->damage(context, 1.0f);
+			return true;
 		}
 
 		return false;
