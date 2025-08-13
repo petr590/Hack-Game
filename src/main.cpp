@@ -1,17 +1,16 @@
 #include "models.h"
 #include "block.h"
 #include "player.h"
+#include "enemy.h"
 #include "shaders.h"
+#include "globals.h"
+#include "util.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <iostream>
+#include <thread>
 
 namespace hack_game {
-	GLuint width = 0;
-	GLuint height = 0;
-
-	const GLuint BACKGROUND_COLOR = 0x3A3A2B;
-
 
 	using std::cerr;
 	using std::endl;
@@ -23,17 +22,16 @@ namespace hack_game {
 	using glm::mat4;
 	using glm::value_ptr;
 
+
+	const GLuint BACKGROUND_COLOR = 0x636155;
 	
-	static shared_ptr<Player> player;
-
-
-	static constexpr vec3 colorAsVec3(GLuint color) {
-		return vec3(
-			((color >> 16) & 0xFF) / 255.0f,
-			((color >>  8) & 0xFF) / 255.0f,
-			((color      ) & 0xFF) / 255.0f
-		);
-	}
+	GLuint width = 0;
+	GLuint height = 0;
+	bool won = false;
+	bool lost = false;
+	
+	static shared_ptr<Player> player = nullptr;
+	static bool paused = false;
 
 
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -78,6 +76,7 @@ namespace hack_game {
 		return window;
 	}
 
+
 	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
 		 // Suppress compiler's warning
 		(void)scancode;
@@ -87,6 +86,9 @@ namespace hack_game {
 
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, GL_TRUE);
+		
+		if (key == GLFW_KEY_F1 && action == GLFW_PRESS)
+			paused = !paused;
 	}
 
 
@@ -158,19 +160,23 @@ int main() {
 	}
 
 
-	TickContext tickContext(map);
-
 	player = std::make_shared<Player>(
 		mainDrawContext,
 		lightDrawContext,
-		0.5f,
+		0.25f,
 		Camera(
-			vec3(0.0f, 0.8f, 0.4f),
-			vec3(0.0f, 0.0f, 0.0f)
+			vec3(0.0f, 0.75f, 0.35f),
+			// vec3(0.0f, 1.5f, 0.0f), // вид сверху
+			vec3(0.0f, 0.0f, -0.05f)
 		)
 	);
 
-	tickContext.addEntity(player);
+	std::shared_ptr<Enemy> enemy = std::make_shared<Enemy1>(
+		mainDrawContext, lightDrawContext,
+		vec3(11.5f * TILE_SIZE, 0.0f, 5.5f * TILE_SIZE)
+	);
+
+	TickContext tickContext(map, player, enemy);
 
 	for (Block& block : blocks) {
 		tickContext.addEntity(shared_ptr<Entity>(&block, empty_deleter));
@@ -188,11 +194,8 @@ int main() {
 		lastFrame = currentFrame;
 
 		glfwPollEvents();
-		
-		constexpr vec3 background = colorAsVec3(BACKGROUND_COLOR);
-		glClearColor(background.r, background.g, background.b, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// tick
 		for (const auto& entity : tickContext.getEntities()) {
 			entity->tick(tickContext);
 		}
@@ -200,26 +203,44 @@ int main() {
 		tickContext.updateEntities();
 
 
+		// shader uniforms
 		glUseProgram(mainShaderProgram);
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
-
-		mat4 model(1.0f);
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, value_ptr(modelNoTransform));
-		platformModel.draw(mainDrawContext);
 
+		glUseProgram(lightShaderProgram);
+		glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, value_ptr(lightModel));
+		glUniformMatrix4fv(lightViewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
+		
+
+		// draw background
+		constexpr vec3 background = colorAsVec3(BACKGROUND_COLOR);
+		glClearColor(background.r, background.g, background.b, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+		// draw entities
+		models::platform.draw(mainDrawContext);
+		models::lightCube.draw(lightDrawContext);
 
 		for (const auto& entity : tickContext.getEntities()) {
 			entity->draw();
 		}
 
 
-		glUseProgram(lightShaderProgram);
-		glUniformMatrix4fv(lightModelLoc, 1, GL_FALSE, value_ptr(lightModel));
-		glUniformMatrix4fv(lightViewLoc, 1, GL_FALSE, value_ptr(player->getCamera().getView()));
-
-		lightCubeModel.draw(lightDrawContext);
-
+		// swap buffers
 		glfwSwapBuffers(window);
+
+
+		// check paused
+		if (paused) {
+			while (paused && !glfwWindowShouldClose(window)) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+				glfwPollEvents();
+			}
+
+			lastFrame = glfwGetTime();
+		}
 	}
 	
 	glfwTerminate();

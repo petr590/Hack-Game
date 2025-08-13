@@ -3,23 +3,20 @@
 
 #include "draw_context.h"
 #include "tick_context.h"
+#include "model.h"
+#include <glm/mat4x4.hpp>
 
 namespace hack_game {
 
 	class Entity {
 	protected:
-		DrawContext& drawContext;
-
-		Entity(DrawContext& drawContext):
-				drawContext(drawContext) {}
+		constexpr Entity() = default;
 
 	public:
-		virtual ~Entity() {}
+		virtual ~Entity() = default;
 
 		virtual void tick(TickContext&) = 0;
-		virtual void draw() const {
-			glUseProgram(drawContext.shaderProgram);
-		}
+		virtual void draw() const = 0;
 	};
 }
 

@@ -1,4 +1,5 @@
 #include "model.h"
+#include "util.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <map>
 #include <fstream>
@@ -17,7 +18,13 @@ namespace hack_game {
 
 	vector<Model*> Model::models;
 
-	Model::Model(GLuint color, const string& path): color(color) {
+	Model::Model() {
+		models.push_back(this);
+	}
+
+	// ---------------------------------------- SimpleModel ----------------------------------------
+
+	SimpleModel::SimpleModel(GLuint color, const string& path): color(colorAsVec3(color)) {
 		ifstream file(path);
 
 		if (!file.is_open()) {
@@ -75,11 +82,14 @@ namespace hack_game {
 
 			file.ignore(numeric_limits<streamsize>::max(), '\n');
 		}
-
-		models.push_back(this);
 	}
 
-	void Model::generateVertexArray() {
+
+	SimpleModel::SimpleModel(GLuint color, const SimpleModel& model):
+		vertices(model.vertices), indices(model.indices), color(colorAsVec3(color)) {}
+
+
+	void SimpleModel::generateVertexArray() {
 		GLuint VBO, EBO, VAO;
 		glGenBuffers(1, &VBO);
 		glGenBuffers(1, &EBO);
@@ -105,21 +115,38 @@ namespace hack_game {
 		this->vertexArray = VAO;
 	}
 
-	void Model::draw(DrawContext& context) const {
+	void SimpleModel::draw(DrawContext& context) const {
+		draw(context, color);
+	}
+
+	void SimpleModel::draw(DrawContext& context, const vec3& color) const {
 		glUseProgram(context.shaderProgram);
-
-		vec3 vertexColor(
-			((color >> 16) & 0xFF) / 255.0f,
-			((color >>  8) & 0xFF) / 255.0f,
-			((color      ) & 0xFF) / 255.0f
-		);
-
-		glUniform3fv(context.modelColorLocation, 1, glm::value_ptr(vertexColor));
+		glUniform3fv(context.modelColorLocation, 1, glm::value_ptr(color));
 
 		assert(vertexArray != 0);
 
 		glBindVertexArray(vertexArray);
 		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
 		glBindVertexArray(0);
+	}
+
+
+	// ---------------------------------------- CompositeModel ----------------------------------------
+
+	CompositeModel::CompositeModel(std::initializer_list<Model*> models):
+			models(models) {}
+	
+	void CompositeModel::generateVertexArray() {}
+
+	void CompositeModel::draw(DrawContext& context) const {
+		for (const Model* model : models) {
+			model->draw(context);
+		}
+	}
+
+	void CompositeModel::draw(DrawContext& context, const vec3& color) const {
+		for (const Model* model : models) {
+			model->draw(context, color);
+		}
 	}
 }

@@ -8,8 +8,8 @@
 namespace hack_game {
 
 	class Player: public Entity {
+		DrawContext& drawContext;
 		DrawContext& bulletDrawContext;
-		const Model& model;
 		const float speed;
 		Camera camera;
 
@@ -21,19 +21,24 @@ namespace hack_game {
 		bool fire  = false;
 		float angle = 0.0f;
 		float targetAngle = 0.0f;
-
 		float timeSinceLastBullet = 0.0f;
+		int32_t hitpoints = 3;
 
 	public:
 		Player(DrawContext& drawContext, DrawContext& bulletDrawContext, float speed, const Camera&);
+
+		const glm::vec3& getPos() const noexcept {
+			return pos;
+		}
 		
-		Camera& getCamera() {
+		const Camera& getCamera() const noexcept {
 			return camera;
 		}
 		
 		void onKey(int key, int action);
 		void tick(TickContext&) override;
 		void draw() const override;
+		void damage(TickContext&, int32_t damage);
 
 	private:
 		void updateAngle(float targetAngle);

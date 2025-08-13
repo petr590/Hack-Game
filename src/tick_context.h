@@ -10,6 +10,9 @@ namespace hack_game {
 
 	class Entity;
 	class Block;
+	class Player;
+	class Enemy;
+	class EnemyBullet;
 
 
 	class Map {
@@ -49,14 +52,18 @@ namespace hack_game {
 	struct TickContext {
 		float deltaTime = 0;
 		Map& map;
+		const std::shared_ptr<Player> player;
+		const std::shared_ptr<Enemy> enemy;
 
 	private:
 		std::vector<std::shared_ptr<Entity>> entities;
 		std::vector<std::shared_ptr<Entity>> addedEntities;
 		std::vector<std::shared_ptr<Entity>> removedEntities;
 
+		std::vector<std::shared_ptr<EnemyBullet>> breakableEnemyBullets;
+
 	public:
-		TickContext(Map& map) noexcept: map(map) {}
+		TickContext(Map& map, const std::shared_ptr<Player>& player, const std::shared_ptr<Enemy>& enemy) noexcept;
 
 		glm::uvec2 getMapPos(const glm::vec2& pos) const noexcept;
 
@@ -65,14 +72,12 @@ namespace hack_game {
 			return entities;
 		}
 
-		void addEntity(const std::shared_ptr<Entity>& entity) {
-			addedEntities.push_back(entity);
+		const std::vector<std::shared_ptr<EnemyBullet>>& getBreakableEnemyBullets() const noexcept {
+			return breakableEnemyBullets;
 		}
 
-		void removeEntity(const std::shared_ptr<Entity>& entity) {
-			removedEntities.push_back(entity);
-		}
-
+		void addEntity(const std::shared_ptr<Entity>&);
+		void removeEntity(const std::shared_ptr<Entity>&);
 		void updateEntities();
 	};
 }

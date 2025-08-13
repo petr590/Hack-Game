@@ -30,13 +30,15 @@ add_compile_options(
 
 add_executable(main
 	src/main.cpp
+	src/camera.cpp
 	src/model.cpp
 	src/models.cpp
 	src/tick_context.cpp
+	src/simple_entity.cpp
 	src/block.cpp
-	src/camera.cpp
 	src/player.cpp
 	src/bullet.cpp
+	src/enemy.cpp
 	src/shaders.cpp
 )
 
