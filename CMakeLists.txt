@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 # add_definitions("-O3")
 add_definitions("-g")
 add_compile_options(
+	-O3
 	-Wall
 	-Wextra
 	-Wpedantic
@@ -25,20 +26,27 @@ add_compile_options(
 	-Wshadow=compatible-local
 	-Wzero-as-null-pointer-constant
 #	-Wconversion
-#	-Wsign-conversion
+	-Wsign-conversion
 )
 
 add_executable(main
 	src/main.cpp
-	src/camera.cpp
-	src/model.cpp
-	src/models.cpp
-	src/tick_context.cpp
-	src/simple_entity.cpp
-	src/block.cpp
-	src/player.cpp
-	src/bullet.cpp
-	src/enemy.cpp
+
+	src/model/model.cpp
+	src/model/models.cpp
+	src/model/simple_model.cpp
+	src/model/composite_model.cpp
+
+	src/context/tick_context.cpp
+
+	src/entity/camera.cpp
+	src/entity/simple_entity.cpp
+	src/entity/animation_entity.cpp
+	src/entity/block.cpp
+	src/entity/player.cpp
+	src/entity/bullet.cpp
+	src/entity/enemy.cpp
+
 	src/shaders.cpp
 )
 

@@ -1,22 +1,24 @@
 #include "tick_context.h"
-#include "player.h"
-#include "enemy.h"
-#include "bullet.h"
-#include <algorithm>
+#include "../entity/player.h"
+#include "../entity/enemy.h"
+#include "../entity/bullet.h"
 
 namespace hack_game {
 	using std::shared_ptr;
 	using std::clamp;
 	using std::move;
 	using std::find;
-	using std::make_move_iterator;
 	using std::dynamic_pointer_cast;
 
 	using glm::uvec2;
 	using glm::vec2;
 
-	TickContext::TickContext(Map& map, const shared_ptr<Player>& player, const shared_ptr<Enemy>& enemy) noexcept:
-				map(map), player(player), enemy(enemy), entities{player, enemy} {}
+	TickContext::TickContext(Map&& map, const shared_ptr<Player>& player, const shared_ptr<Enemy>& enemy) noexcept:
+				map(map), player(player), enemy(enemy) {
+		
+		entityMap[player->getShaderProgram()].push_back(player);
+		entityMap[enemy->getShaderProgram()].push_back(enemy);
+	}
 
 
 	uvec2 TickContext::getMapPos(const vec2& pos) const noexcept {
@@ -56,23 +58,22 @@ namespace hack_game {
 	void TickContext::updateEntities() {
 		if (!removedEntities.empty()) {
 			for (const auto& entity : removedEntities) {
-				auto it = find(entities.begin(), entities.end(), entity);
-				if (it != entities.end())
-					entities.erase(it);
+				EntityVector& entityVec = entityMap[entity->getShaderProgram()];
+
+				const auto it = find(entityVec.cbegin(), entityVec.cend(), entity);
+				if (it != entityVec.cend()) {
+					entityVec.erase(it);
+				}
 			}
 
 			removedEntities.clear();
 		}
 
 		if (!addedEntities.empty()) {
-			entities.reserve(entities.size() + addedEntities.size());
+			for (auto& entity : addedEntities) {
+				entityMap[entity->getShaderProgram()].push_back(move(entity));
+			}
 
-			entities.insert(
-				entities.end(),
-				make_move_iterator(addedEntities.begin()),
-				make_move_iterator(addedEntities.end())
-			);
-			
 			addedEntities.clear();
 		}
 	}

@@ -1,8 +1,7 @@
-#ifndef HACK_GAME_ENEMY_H
-#define HACK_GAME_ENEMY_H
+#ifndef HACK_GAME__ENTITY__ENEMY_H
+#define HACK_GAME__ENTITY__ENEMY_H
 
 #include "simple_entity.h"
-#include "models.h"
 
 namespace hack_game {
 

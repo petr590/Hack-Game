@@ -1,5 +1,5 @@
-#ifndef HACK_GAME_CAMERA_H
-#define HACK_GAME_CAMERA_H
+#ifndef HACK_GAME__ENTITY__CAMERA_H
+#define HACK_GAME__ENTITY__CAMERA_H
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>

@@ -1,20 +1,22 @@
 #include "shaders.h"
-#include <glm/vec3.hpp>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
+
 #include <iostream>
 #include <fstream>
 #include <memory>
+
+#include <GLFW/glfw3.h>
+#include <glm/mat4x4.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
 	using std::cerr;
 	using std::endl;
 	using std::ios;
 	using std::ifstream;
+	using std::streamsize;
 	using std::make_unique;
 
-	using glm::vec3;
 	using glm::mat4;
 	using glm::perspective;
 	using glm::value_ptr;
@@ -23,9 +25,9 @@ namespace hack_game {
 
 	GLuint compileShader(GLenum type, const char* filename) {
 		ifstream file(filename, ios::ate);
-		const size_t fsize = file.tellg();
+		const streamsize fsize = file.tellg();
 		
-		auto source = make_unique<char[]>(fsize + 1);
+		auto source = make_unique<char[]>(size_t(fsize + 1));
 		char* const ptr = source.get();
 		ptr[fsize] = '\0';
 		
@@ -89,7 +91,7 @@ namespace hack_game {
 			GLchar infoLog[LOG_SIZE];
 			glGetProgramInfoLog(shaderProgram, LOG_SIZE, NULL, infoLog);
 			cerr << "ERROR::PROGRAM::LINKAGE_FAILED\n" << infoLog << endl;
-			return -1;
+			return 0;
 		}
 		
 		glDeleteShader(vertexShader);
@@ -99,25 +101,25 @@ namespace hack_game {
 		return shaderProgram;
 	}
 
-	void initShaderUniforms(GLuint mainShaderProgram, GLuint lightShaderProgram) {
+	void initShaderUniforms(GLuint mainShader, std::initializer_list<GLuint> otherShaders) {
 		const mat4 projection = perspective(45.0f, GLfloat(width) / GLfloat(height), 0.1f, 100.0f);
 		
-		
-		glUseProgram(mainShaderProgram);
+		glUseProgram(mainShader);
 
-		GLuint projectionLoc = glGetUniformLocation(mainShaderProgram, "projection");
-		GLuint lightColorLoc = glGetUniformLocation(mainShaderProgram, "lightColor");
-		GLuint lightPosLoc   = glGetUniformLocation(mainShaderProgram, "lightPos");
+		GLint projectionUniform = glGetUniformLocation(mainShader, "projection");
+		GLint lightColorUniform = glGetUniformLocation(mainShader, "lightColor");
+		GLint lightPosUniform   = glGetUniformLocation(mainShader, "lightPos");
 
-		glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, value_ptr(projection));
-		glUniform3fv(lightColorLoc, 1, value_ptr(lightColor));
-		glUniform3fv(lightPosLoc, 1, value_ptr(lightPos));
+		glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, value_ptr(projection));
+		glUniform3fv(lightColorUniform, 1, value_ptr(lightColor));
+		glUniform3fv(lightPosUniform, 1, value_ptr(lightPos));
 
 
-		glUseProgram(lightShaderProgram);
+		for (GLuint program : otherShaders) {
+			glUseProgram(program);
 
-		GLuint lightProjectionLoc = glGetUniformLocation(lightShaderProgram, "projection");
-
-		glUniformMatrix4fv(lightProjectionLoc, 1, GL_FALSE, value_ptr(projection));
+			projectionUniform = glGetUniformLocation(program, "projection");
+			glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, value_ptr(projection));
+		}
 	}
 }

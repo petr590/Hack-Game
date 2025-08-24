@@ -1,6 +1,5 @@
 #include "camera.h"
 #include <glm/gtc/matrix_transform.hpp>
-#include <GLFW/glfw3.h>
 
 namespace hack_game {
 	using glm::vec3;

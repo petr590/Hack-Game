@@ -1,13 +1,12 @@
 #include "bullet.h"
-#include "player.h"
 #include "enemy.h"
+#include "player.h"
 #include "block.h"
-#include <algorithm>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/mat4x4.hpp>
+#include "../model/models.h"
+#include "../context/draw_context.h"
+#include "../context/tick_context.h"
+
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
 	using std::min;

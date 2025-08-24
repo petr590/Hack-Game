@@ -1,8 +1,7 @@
-#ifndef HACK_GAME_PLAYER_H
-#define HACK_GAME_PLAYER_H
+#ifndef HACK_GAME__ENTITY__PLAYER_H
+#define HACK_GAME__ENTITY__PLAYER_H
 
 #include "entity.h"
-#include "model.h"
 #include "camera.h"
 
 namespace hack_game {
@@ -34,6 +33,8 @@ namespace hack_game {
 		const Camera& getCamera() const noexcept {
 			return camera;
 		}
+
+		GLuint getShaderProgram() const override;
 		
 		void onKey(int key, int action);
 		void tick(TickContext&) override;

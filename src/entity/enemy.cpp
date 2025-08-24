@@ -1,10 +1,12 @@
 #include "enemy.h"
-#include "globals.h"
 #include "player.h"
 #include "bullet.h"
+#include "../model/models.h"
+#include "../context/tick_context.h"
+#include "../globals.h"
+
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <algorithm>
 
 namespace hack_game {
 	using std::clamp;

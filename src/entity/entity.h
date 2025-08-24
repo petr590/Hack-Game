@@ -1,12 +1,13 @@
-#ifndef HACK_GAME_ENTITY_H
-#define HACK_GAME_ENTITY_H
+#ifndef HACK_GAME__ENTITY__ENTITY_H
+#define HACK_GAME__ENTITY__ENTITY_H
 
-#include "draw_context.h"
-#include "tick_context.h"
-#include "model.h"
-#include <glm/mat4x4.hpp>
+#include "../gl_fwd.h"
 
 namespace hack_game {
+
+	class Model;
+	class DrawContext;
+	class TickContext;
 
 	class Entity {
 	protected:
@@ -17,6 +18,7 @@ namespace hack_game {
 
 		virtual void tick(TickContext&) = 0;
 		virtual void draw() const = 0;
+		virtual GLuint getShaderProgram() const = 0;
 	};
 }
 

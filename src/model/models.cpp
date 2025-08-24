@@ -2,7 +2,8 @@
 
 namespace hack_game {
 	namespace models {
-		SimpleModel platform        (0xd0c8b5, "models/platform.obj");
+		SimpleModel plane    (0x000000, "models/plane.obj");
+		SimpleModel platform (0xd0c8b5, "models/platform.obj");
 
 		SimpleModel breakableCube   (0x41403B, "models/cube.obj");
 		SimpleModel unbreakableCube (0xE0DAD1, breakableCube);

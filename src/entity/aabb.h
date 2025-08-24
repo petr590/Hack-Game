@@ -1,5 +1,5 @@
-#ifndef HACK_GAME_AABB_H
-#define HACK_GAME_AABB_H
+#ifndef HACK_GAME__ENTITY__AABB_H
+#define HACK_GAME__ENTITY__AABB_H
 
 #include <glm/vec2.hpp>
 

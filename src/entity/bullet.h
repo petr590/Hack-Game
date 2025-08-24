@@ -1,8 +1,8 @@
-#ifndef HACK_GAME_BULLET_H
-#define HACK_GAME_BULLET_H
+#ifndef HACK_GAME__ENTITY__BULLET_H
+#define HACK_GAME__ENTITY__BULLET_H
 
 #include "simple_entity.h"
-#include "model.h"
+#include <memory>
 
 namespace hack_game {
 

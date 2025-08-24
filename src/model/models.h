@@ -1,9 +1,14 @@
-#include "model.h"
+#ifndef HACK_GAME__MODEL__MODELS_H
+#define HACK_GAME__MODEL__MODELS_H
+
+#include "simple_model.h"
+#include "composite_model.h"
 
 namespace hack_game {
 	namespace models {
 
 		extern SimpleModel
+				plane,
 				platform,
 
 				breakableCube,
@@ -30,3 +35,5 @@ namespace hack_game {
 				player1hp;
 	}
 }
+
+#endif

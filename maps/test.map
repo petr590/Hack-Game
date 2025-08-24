@@ -1,0 +1,7 @@
+size 17 17
+row BBBBBBBBBBBBBBBBB
+row B               B
+row B     B B B     B
+row B     B   B     B
+map 1 2 2 2 2 2 3 2 4 2 3 2 2 2 2 2 1
+enemy 1

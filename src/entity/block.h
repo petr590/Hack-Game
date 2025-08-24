@@ -1,10 +1,10 @@
-#ifndef HACK_GAME_BLOCK_H
-#define HACK_GAME_BLOCK_H
+#ifndef HACK_GAME__ENTITY__BLOCK_H
+#define HACK_GAME__ENTITY__BLOCK_H
 
-#include "aabb.h"
 #include "simple_entity.h"
-#include "models.h"
-#include <limits>
+#include "aabb.h"
+#include "../model/simple_model.h"
+#include <memory>
 
 namespace hack_game {
 
@@ -18,13 +18,8 @@ namespace hack_game {
 
 		Block(DrawContext& drawContext, const SimpleModel& model, float hitpoints, const glm::uvec2& pos);
 		
-		static Block breakable(DrawContext& drawContext, const glm::uvec2& pos) {
-			return Block(drawContext, models::breakableCube, 3.0f, pos);
-		}
-		
-		static Block unbreakable(DrawContext& drawContext, const glm::uvec2& pos) {
-			return Block(drawContext, models::unbreakableCube, std::numeric_limits<float>().infinity(), pos);
-		}
+		static Block breakable(DrawContext& drawContext, const glm::uvec2& pos);
+		static Block unbreakable(DrawContext& drawContext, const glm::uvec2& pos);
 
 		AABB getHitbox() const;
 		

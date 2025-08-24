@@ -2,10 +2,16 @@
 #include "enemy.h"
 #include "block.h"
 #include "bullet.h"
-#include "models.h"
-#include <algorithm>
+#include "aabb.h"
+#include "../model/models.h"
+#include "../context/draw_context.h"
+#include "../context/tick_context.h"
+
+#define GLEW_STATIC
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
@@ -14,7 +20,6 @@ namespace hack_game {
 	using std::pow;
 	using std::sqrt;
 	using std::isnan;
-	using std::vector;
 	using std::make_shared;
 
 	using glm::uvec2;
@@ -35,6 +40,10 @@ namespace hack_game {
 			pos(TILE_SIZE * 8, 0.0f, TILE_SIZE * 8) {
 		
 		this->camera.move(pos);
+	}
+
+	GLuint Player::getShaderProgram() const {
+		return drawContext.shaderProgram;
 	}
 
 	void Player::updateAngle(float newTargetAngle) {
@@ -295,7 +304,7 @@ namespace hack_game {
 		if (fire && timeSinceLastBullet >= BULLET_PERIOD) {
 			timeSinceLastBullet = fmodf(timeSinceLastBullet, BULLET_PERIOD);
 
-			quat rotateQuat = angleAxis(angle, vec3(0.0f, 1.0f, 0.0f));
+			quat rotateQuat = glm::angleAxis(angle, vec3(0.0f, 1.0f, 0.0f));
 			vec3 velocity = rotateQuat * vec3(0.0f, 0.0f, -1.0f) * BULLET_SPEED;
 			vec3 bulletPos = pos + velocity * (TILE_SIZE * 0.5f);
 
@@ -313,7 +322,7 @@ namespace hack_game {
 		mat4 modelMat(1.0f);
 		modelMat = translate(modelMat, pos);
 		modelMat = rotate(modelMat, angle, vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(drawContext.modelLocation, 1, GL_FALSE, glm::value_ptr(modelMat));
+		glUniformMatrix4fv(drawContext.modelUniform, 1, GL_FALSE, glm::value_ptr(modelMat));
 
 		if (hitpoints >= 3) models::player3hp.draw(drawContext);
 		if (hitpoints == 2) models::player2hp.draw(drawContext);
