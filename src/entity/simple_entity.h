@@ -6,16 +6,16 @@
 
 namespace hack_game {
 
-	class SimpleEntity: public Entity {
+	class SimpleEntity: public virtual Entity {
 	protected:
-		DrawContext& drawContext;
+		Shader& shader;
 		const Model& model;
 
 	public:
-		constexpr SimpleEntity(DrawContext& drawContext, const Model& model) noexcept:
-				drawContext(drawContext), model(model) {}
+		SimpleEntity(Shader& shader, const Model& model) noexcept:
+				shader(shader), model(model) {}
 
-		GLuint getShaderProgram() const override;
+		GLuint getShaderProgram() const noexcept override;
 		void tick(TickContext&) override {}
 		void draw() const override;
 		virtual glm::mat4 getModelTransform() const;

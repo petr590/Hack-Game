@@ -9,13 +9,13 @@ namespace hack_game {
 	
 	void CompositeModel::generateVertexArray() {}
 
-	void CompositeModel::draw(DrawContext& context) const {
+	void CompositeModel::draw(Shader& context) const {
 		for (const Model* model : models) {
 			model->draw(context);
 		}
 	}
 
-	void CompositeModel::draw(DrawContext& context, const vec3& color) const {
+	void CompositeModel::draw(Shader& context, const vec3& color) const {
 		for (const Model* model : models) {
 			model->draw(context, color);
 		}

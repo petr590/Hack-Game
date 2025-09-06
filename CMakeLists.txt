@@ -31,23 +31,34 @@ add_compile_options(
 
 add_executable(main
 	src/main.cpp
+	src/init.cpp
+	src/shaders.cpp
+	src/util.cpp
 
 	src/model/model.cpp
 	src/model/models.cpp
+	src/model/vao_model.cpp
+	src/model/frame_model.cpp
 	src/model/simple_model.cpp
 	src/model/composite_model.cpp
 
+	src/context/draw_context.cpp
 	src/context/tick_context.cpp
 
 	src/entity/camera.cpp
 	src/entity/simple_entity.cpp
-	src/entity/animation_entity.cpp
-	src/entity/block.cpp
 	src/entity/player.cpp
-	src/entity/bullet.cpp
 	src/entity/enemy.cpp
+	src/entity/block.cpp
+	src/entity/bullet.cpp
+	src/entity/minion.cpp
+	src/entity/damageable.cpp
 
-	src/shaders.cpp
+	src/entity/animation/animation.cpp
+	src/entity/animation/enemy_damage.cpp
+	src/entity/animation/enemy_destroy.cpp
+	src/entity/animation/minion_destroy.cpp
 )
 
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(main glfw GLEW GL)

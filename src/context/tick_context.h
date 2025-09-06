@@ -1,7 +1,7 @@
 #ifndef HACK_GAME_TICK_CONTEXT_H
 #define HACK_GAME_TICK_CONTEXT_H
 
-#include "../gl_fwd.h"
+#include "gl_fwd.h"
 #include <vector>
 #include <map>
 #include <memory>
@@ -14,7 +14,7 @@ namespace hack_game {
 	class Block;
 	class Player;
 	class Enemy;
-	class EnemyBullet;
+	class Damageable;
 
 
 	class Map {
@@ -57,14 +57,19 @@ namespace hack_game {
 		const std::shared_ptr<Player> player;
 		const std::shared_ptr<Enemy> enemy;
 
-	private:
 		using EntityVector = std::vector<std::shared_ptr<Entity>>;
+		using EntityMap = std::map<GLuint, EntityVector>;
 
-		std::map<GLuint, EntityVector> entityMap;
+	private:
+		EntityMap opaqueEntityMap;
+		EntityMap transparentEntityMap;
+
 		EntityVector addedEntities;
 		EntityVector removedEntities;
 
-		std::vector<std::shared_ptr<EnemyBullet>> breakableEnemyBullets;
+		std::vector<std::shared_ptr<Damageable>> damageableEnemyEntities;
+
+		EntityVector& getVector(const std::shared_ptr<Entity>&) noexcept;
 
 	public:
 		TickContext(Map&& map, const std::shared_ptr<Player>& player, const std::shared_ptr<Enemy>& enemy) noexcept;
@@ -72,12 +77,16 @@ namespace hack_game {
 		glm::uvec2 getMapPos(const glm::vec2& pos) const noexcept;
 
 
-		const std::map<GLuint, EntityVector>& getEntityMap() const noexcept {
-			return entityMap;
+		const EntityMap& getOpaqueEntityMap() const noexcept {
+			return opaqueEntityMap;
 		}
 
-		const std::vector<std::shared_ptr<EnemyBullet>>& getBreakableEnemyBullets() const noexcept {
-			return breakableEnemyBullets;
+		const EntityMap& getTransparentEntityMap() const noexcept {
+			return transparentEntityMap;
+		}
+
+		const std::vector<std::shared_ptr<Damageable>>& getDamageableEnemyEntities() const noexcept {
+			return damageableEnemyEntities;
 		}
 
 		void addEntity(const std::shared_ptr<Entity>&);

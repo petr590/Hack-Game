@@ -1,7 +1,7 @@
 #include "tick_context.h"
-#include "../entity/player.h"
-#include "../entity/enemy.h"
-#include "../entity/bullet.h"
+#include "entity/damageable.h"
+#include "entity/player.h"
+#include "entity/enemy.h"
 
 namespace hack_game {
 	using std::shared_ptr;
@@ -16,8 +16,9 @@ namespace hack_game {
 	TickContext::TickContext(Map&& map, const shared_ptr<Player>& player, const shared_ptr<Enemy>& enemy) noexcept:
 				map(map), player(player), enemy(enemy) {
 		
-		entityMap[player->getShaderProgram()].push_back(player);
-		entityMap[enemy->getShaderProgram()].push_back(enemy);
+		opaqueEntityMap[player->getShaderProgram()].push_back(player);
+		opaqueEntityMap[enemy->getShaderProgram()].push_back(enemy);
+		damageableEnemyEntities.push_back(enemy);
 	}
 
 
@@ -32,10 +33,10 @@ namespace hack_game {
 	void TickContext::addEntity(const shared_ptr<Entity>& entity) {
 		addedEntities.push_back(entity);
 
-		auto bullet = dynamic_pointer_cast<EnemyBullet>(entity);
+		auto damageable = dynamic_pointer_cast<Damageable>(entity);
 
-		if (bullet != nullptr && !bullet->unbreakable) {
-			breakableEnemyBullets.push_back(move(bullet));
+		if (damageable != nullptr && damageable->getSide() == Side::ENEMY && !damageable->invulnerable()) {
+			damageableEnemyEntities.push_back(move(damageable));
 		}
 	}
 
@@ -43,26 +44,31 @@ namespace hack_game {
 	void TickContext::removeEntity(const shared_ptr<Entity>& entity) {
 		removedEntities.push_back(entity);
 
-		auto bullet = dynamic_pointer_cast<EnemyBullet>(entity);
+		auto damageable = dynamic_pointer_cast<Damageable>(entity);
 
-		if (bullet != nullptr) {
-			auto it = find(breakableEnemyBullets.begin(), breakableEnemyBullets.end(), bullet);
+		if (damageable != nullptr && damageable->getSide() == Side::ENEMY) {
+			auto it = find(damageableEnemyEntities.begin(), damageableEnemyEntities.end(), damageable);
 
-			if (it != breakableEnemyBullets.end()) {
-				breakableEnemyBullets.erase(it);
+			if (it != damageableEnemyEntities.end()) {
+				damageableEnemyEntities.erase(it);
 			}
 		}
 	}
 
 
+	TickContext::EntityVector& TickContext::getVector(const shared_ptr<Entity>& entity) noexcept {
+		EntityMap& map = entity->isTransparent() ? transparentEntityMap : opaqueEntityMap;
+		return map[entity->getShaderProgram()];
+	}
+
 	void TickContext::updateEntities() {
 		if (!removedEntities.empty()) {
 			for (const auto& entity : removedEntities) {
-				EntityVector& entityVec = entityMap[entity->getShaderProgram()];
+				EntityVector& vector = getVector(entity);
 
-				const auto it = find(entityVec.cbegin(), entityVec.cend(), entity);
-				if (it != entityVec.cend()) {
-					entityVec.erase(it);
+				const auto it = find(vector.cbegin(), vector.cend(), entity);
+				if (it != vector.cend()) {
+					vector.erase(it);
 				}
 			}
 
@@ -71,7 +77,7 @@ namespace hack_game {
 
 		if (!addedEntities.empty()) {
 			for (auto& entity : addedEntities) {
-				entityMap[entity->getShaderProgram()].push_back(move(entity));
+				getVector(entity).push_back(move(entity));
 			}
 
 			addedEntities.clear();

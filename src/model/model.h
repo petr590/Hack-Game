@@ -1,21 +1,13 @@
 #ifndef HACK_GAME__MODEL__MODEL_H
 #define HACK_GAME__MODEL__MODEL_H
 
-#include "../gl_fwd.h"
+#include "gl_fwd.h"
 #include <vector>
 #include <glm/vec3.hpp>
 
 namespace hack_game {
 
-	class DrawContext;
-
-	struct Vertex {
-		const glm::vec3 pos;
-		const glm::vec3 normal;
-
-		constexpr Vertex(const glm::vec3 pos, const glm::vec3 normal) noexcept:
-			pos(pos), normal(normal) {}
-	};
+	class Shader;
 
 	
 	class Model {
@@ -33,8 +25,8 @@ namespace hack_game {
 		virtual ~Model() = default;
 
 		virtual void generateVertexArray() = 0;
-		virtual void draw(DrawContext&) const = 0;
-		virtual void draw(DrawContext&, const glm::vec3& color) const = 0;
+		virtual void draw(Shader&) const = 0;
+		virtual void draw(Shader&, const glm::vec3& color) const = 0;
 	};
 }
 

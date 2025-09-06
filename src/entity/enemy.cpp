@@ -1,14 +1,19 @@
 #include "enemy.h"
 #include "player.h"
 #include "bullet.h"
-#include "../model/models.h"
-#include "../context/tick_context.h"
-#include "../globals.h"
+#include "animation/enemy_damage.h"
+#include "animation/enemy_destroy.h"
+#include "model/models.h"
+#include "context/draw_context.h"
+#include "context/tick_context.h"
+#include "globals.h"
+#include "util.h"
 
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace hack_game {
+	using std::isnan;
 	using std::clamp;
 	using std::make_shared;
 
@@ -16,18 +21,37 @@ namespace hack_game {
 	using glm::vec3;
 	using glm::mat4;
 
-	Enemy::Enemy(DrawContext& drawContext, DrawContext& bulletDrawContext, const glm::vec3& pos, float bulletSpawnPeriod) noexcept:
-				SimpleEntity(drawContext, models::sphere),
-				bulletDrawContext(bulletDrawContext),
-				pos(pos),
-				bulletSpawnPeriod(bulletSpawnPeriod) {}
+	#define MODEL models::sphere
+
+	Enemy::Enemy(DrawContext& drawContext, float bulletSpawnPeriod, const glm::vec3& pos) noexcept:
+			SimpleEntity(drawContext.mainShader, MODEL),
+			Damageable(Side::ENEMY, 7),
+			drawContext(drawContext),
+			bulletSpawnPeriod(bulletSpawnPeriod),
+			pos(pos) {}
 
 
-	void Enemy::damage(TickContext& context, float damage) {
-		hitpoints -= damage;
+	bool Enemy::hasCollision(const vec3& point) const {
+		return isPointInsideSphere(point, pos, RADIUS);
+	}
 
-		if (hitpoints <= 0) {
+
+	static const float BRIGHT_DURATION = 0.04f;
+
+	void Enemy::damage(TickContext& context, hp_t damage) {
+		Damageable::damage(context, damage);
+
+		if (destroyed()) {
 			won = true;
+
+			animation = make_shared<EnemyDestroyAnimation>(drawContext);
+			context.addEntity(animation);
+			context.removeEntity(shared_from_this());
+
+		} else if (animation == nullptr || !animation->isFinished()) {
+
+			animation = make_shared<EnemyDamageAnimation>(drawContext);
+			context.addEntity(animation);
 		}
 	}
 
@@ -41,44 +65,48 @@ namespace hack_game {
 		}
 	}
 
+	void Enemy::draw() const {
+		shader.setModel(getModelTransform());
+		
+		if (animation != nullptr && animation->getTime() <= BRIGHT_DURATION) {
+			model.draw(shader, MODEL.getColor() * 1.5f);
+		} else {
+			model.draw(shader);
+		}
+
+		SimpleEntity::draw();
+	}
+
 	mat4 Enemy::getModelTransform() const {
-		mat4 model(1.0f);
-		model = glm::translate(model, pos);
-		return model;
+		return glm::translate(mat4(1.0f), pos);
 	}
 
 
-	constexpr float ROTATE_PER_SEC = glm::radians(45.0f);
-	constexpr float BULLET_SPEED = 0.15f;
-	constexpr vec2 ANGLE_NORMAL(0.0f, -1.0f);
+	static const float ROTATE_PER_SEC = glm::radians(45.0f);
 
-
-	Enemy1::Enemy1(DrawContext& drawContext, DrawContext& bulletDrawContext, const glm::vec3& pos) noexcept:
-				Enemy(drawContext, bulletDrawContext, pos, 0.5f) {}
+	Enemy1::Enemy1(DrawContext& drawContext, const glm::vec3& pos) noexcept:
+			Enemy(drawContext, 0.5f, pos) {}
+	
 	
 	void Enemy1::tick(TickContext& context) {
-		vec3 dir3d = context.player->getPos() - pos;
-		vec2 dir(dir3d.x, dir3d.z);
+		float targetAngle = horizontalAngleBetween(pos, context.player->getPos());
 
-		if (glm::length(dir) == 0) {
-			Enemy::tick(context);
-			return;
+		if (!isnan(targetAngle)) {
+			angle += clamp(targetAngle - angle, -ROTATE_PER_SEC, ROTATE_PER_SEC);
 		}
-
-		float targetAngle = glm::orientedAngle(ANGLE_NORMAL, glm::normalize(dir));
-		angle += clamp(targetAngle - angle, -ROTATE_PER_SEC, ROTATE_PER_SEC);
 
 		Enemy::tick(context);
 	}
 
+
 	void Enemy1::spawnBullets(TickContext& context) {
-		vec2 velocity0 = ANGLE_NORMAL * BULLET_SPEED;
+		vec2 velocity0 = ANGLE_NORMAL * EnemyBullet::DEFAULT_SPEED;
 
 		for (int i = 0; i < 5; i++) {
 			vec2 velocity = glm::rotate(velocity0, angle + glm::radians(-90.0f + i * 45));
 
 			context.addEntity(make_shared<EnemyBullet>(
-				bulletDrawContext, spawnUnbreakable, vec3(velocity.x, 0.0f, velocity.y), pos
+				drawContext.lightShader, spawnUnbreakable, vec3(velocity.x, 0.0f, velocity.y), pos
 			));
 		}
 

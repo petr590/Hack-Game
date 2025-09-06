@@ -1,42 +1,40 @@
 #include "simple_model.h"
-#include "../context/draw_context.h"
-#include "../util.h"
+#include "context/draw_context.h"
+#include "util.h"
 
-#include <map>
 #include <fstream>
+#include <map>
 
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
-	using glm::vec3;
-
 	using std::string;
 	using std::vector;
 	using std::map;
 	using std::pair;
-	using std::ifstream;
 	using std::streamsize;
 	using std::numeric_limits;
 
+	using glm::vec3;
 
-	SimpleModel::SimpleModel(GLuint color, const string& path): color(colorAsVec3(color)) {
-		ifstream file(path);
+
+	SimpleModel::SimpleModel(uint32_t color, const string& path): VAOModel(color) {
+		std::ifstream file(path);
 
 		if (!file.is_open()) {
 			throw std::ios_base::failure("Cannot open file '" + path + "'");
 		}
 
-
-		vector<vec3> vertexes;
+		vector<vec3> positions;
 		vector<vec3> normals;
-		map<pair<uint32_t, uint32_t>, uint32_t> verticesMap;
+		map<pair<uint32_t, uint32_t>, uint32_t> verticesMap; // Ключ: {позиция, нормаль}, значение: индекс
 
 		for (string tag; file >> tag;) {
 
 			if (tag == "v") {
-				vec3& vec = vertexes.emplace_back();
+				vec3& vec = positions.emplace_back();
 				file >> vec.x >> vec.y >> vec.z;
 				continue;
 			}
@@ -49,23 +47,24 @@ namespace hack_game {
 
 			if (tag == "f") {
 				for (int i = 0; i < 3; i++) {
-					uint32_t vi; file >> vi;
+					uint32_t posIndex; file >> posIndex;
 
 					file.ignore(numeric_limits<streamsize>::max(), '/');
 					file.ignore(numeric_limits<streamsize>::max(), '/');
 
-					uint32_t ni; file >> ni;
-					vi--, ni--;
+					uint32_t normalIndex; file >> normalIndex;
+					posIndex--, normalIndex--;
 
-					auto it = verticesMap.find({vi, ni});
+					auto it = verticesMap.find({posIndex, normalIndex});
 
 					if (it != verticesMap.end()) {
 						indices.push_back(it->second);
+
 					} else {
-						vertices.emplace_back(vertexes[vi], normals[ni]);
+						vertices.emplace_back(positions[posIndex], normals[normalIndex]);
 						
-						uint32_t index = vertices.size() - 1;
-						verticesMap[{vi, ni}] = index;
+						const uint32_t index = vertices.size() - 1;
+						verticesMap[{posIndex, normalIndex}] = index;
 						indices.push_back(index);
 					}
 				}
@@ -82,11 +81,12 @@ namespace hack_game {
 	}
 
 
-	SimpleModel::SimpleModel(GLuint color, const SimpleModel& model):
-		vertices(model.vertices), indices(model.indices), color(colorAsVec3(color)) {}
+	SimpleModel::SimpleModel(uint32_t color, const SimpleModel& model):
+		VAOModel(color, model),
+		vertices(model.vertices) {}
 
 
-	void SimpleModel::generateVertexArray() {
+	GLuint SimpleModel::getVertexArray() const {
 		GLuint VBO, EBO, VAO;
 		glGenBuffers(1, &VBO);
 		glGenBuffers(1, &EBO);
@@ -108,22 +108,6 @@ namespace hack_game {
 		glEnableVertexAttribArray(1);
 		
 		glBindVertexArray(0);
-
-		this->vertexArray = VAO;
-	}
-
-	void SimpleModel::draw(DrawContext& context) const {
-		draw(context, color);
-	}
-
-	void SimpleModel::draw(DrawContext& context, const vec3& color) const {
-		// glUseProgram(context.shaderProgram);
-		glUniform3fv(context.modelColorUniform, 1, glm::value_ptr(color));
-
-		assert(vertexArray != 0);
-
-		glBindVertexArray(vertexArray);
-		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
-		glBindVertexArray(0);
+		return VAO;
 	}
 }

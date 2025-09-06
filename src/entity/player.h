@@ -1,14 +1,13 @@
 #ifndef HACK_GAME__ENTITY__PLAYER_H
 #define HACK_GAME__ENTITY__PLAYER_H
 
-#include "entity.h"
+#include "damageable.h"
 #include "camera.h"
 
 namespace hack_game {
 
-	class Player: public Entity {
+	class Player final: public Damageable {
 		DrawContext& drawContext;
-		DrawContext& bulletDrawContext;
 		const float speed;
 		Camera camera;
 
@@ -21,10 +20,9 @@ namespace hack_game {
 		float angle = 0.0f;
 		float targetAngle = 0.0f;
 		float timeSinceLastBullet = 0.0f;
-		int32_t hitpoints = 3;
 
 	public:
-		Player(DrawContext& drawContext, DrawContext& bulletDrawContext, float speed, const Camera&);
+		Player(DrawContext& drawContext, float speed, const Camera&);
 
 		const glm::vec3& getPos() const noexcept {
 			return pos;
@@ -34,12 +32,15 @@ namespace hack_game {
 			return camera;
 		}
 
-		GLuint getShaderProgram() const override;
+		GLuint getShaderProgram() const noexcept override;
 		
 		void onKey(int key, int action);
 		void tick(TickContext&) override;
 		void draw() const override;
-		void damage(TickContext&, int32_t damage);
+		bool hasCollision(const glm::vec3& point) const override;
+	
+	protected:
+		void onDestroy(TickContext&) override;
 
 	private:
 		void updateAngle(float targetAngle);

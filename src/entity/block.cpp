@@ -1,30 +1,32 @@
 #include "block.h"
-#include "../model/models.h"
-#include "../context/draw_context.h"
-#include "../context/tick_context.h"
+#include "model/models.h"
+#include "context/draw_context.h"
+#include "context/tick_context.h"
 
-#define GLEW_STATIC
-#include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
 	using std::max;
 
+	using glm::uvec2;
 	using glm::vec2;
 	using glm::vec3;
 	using glm::mat4;
 
-	Block::Block(DrawContext& drawContext, const SimpleModel& model, float hitpoints, const glm::uvec2& pos):
-			SimpleEntity(drawContext, model), color(model.color), hitpoints(hitpoints), pos(pos) {}
+	Block::Block(Shader& shader, const SimpleModel& model, hp_t hitpoints, const glm::uvec2& pos):
+			SimpleEntity(shader, model),
+			Damageable(Side::ENEMY, hitpoints),
+			color(model.getColor()),
+			pos(pos) {}
 	
 
-	Block Block::breakable(DrawContext& drawContext, const glm::uvec2& pos) {
-		return Block(drawContext, models::breakableCube, 3.0f, pos);
+	Block Block::breakable(Shader& shader, const uvec2& pos) {
+		return Block(shader, models::breakableCube, 3, pos);
 	}
 	
-	Block Block::unbreakable(DrawContext& drawContext, const glm::uvec2& pos) {
-		return Block(drawContext, models::unbreakableCube, std::numeric_limits<float>().infinity(), pos);
+	Block Block::unbreakable(Shader& shader, const uvec2& pos) {
+		return Block(shader, models::unbreakableCube, Damageable::MAX_HP, pos);
 	}
 
 
@@ -38,29 +40,30 @@ namespace hack_game {
 	}
 
 
+	bool Block::hasCollision(const vec3& pos) const {
+		return getHitbox().containsInclusive(vec2(pos.x, pos.z));
+	}
+
+
 	const float DAMAGE_ANIMATION_DURATION = 0.25f;
 
-	void Block::damage(TickContext& context, float damage) {
-		if (hitpoints == std::numeric_limits<float>().infinity()) {
-			return;
-		}
+	void Block::damage(TickContext& context, hp_t damage) {
+		Damageable::damage(context, damage);
 
-		if (damageAnimationTime <= 0) {
+		if (!invulnerable() && damageAnimationTime <= 0) {
 			damageAnimationTime = DAMAGE_ANIMATION_DURATION;
 		}
-		
-		hitpoints -= damage;
+	}
 
-		if (hitpoints <= 0) {
-			context.map[pos] = nullptr;
-		}
+	void Block::onDestroy(TickContext& context) {
+		context.map[pos] = nullptr;
 	}
 
 	void Block::tick(TickContext& context) {
 		if (damageAnimationTime > 0) {
 			damageAnimationTime -= context.deltaTime;
 
-			if (damageAnimationTime <= 0 && hitpoints <= 0) {
+			if (damageAnimationTime <= 0 && destroyed()) {
 				context.removeEntity(shared_from_this());
 			}
 		}
@@ -74,9 +77,9 @@ namespace hack_game {
 			(pos.y + 0.5f) * TILE_SIZE
 		));
 
-		glUniformMatrix4fv(drawContext.modelUniform, 1, GL_FALSE, glm::value_ptr(modelMat));
+		shader.setModel(modelMat);
 
 		float brightness = max(0.0f, damageAnimationTime * (1.25f / DAMAGE_ANIMATION_DURATION));
-		model.draw(drawContext, color + brightness);
+		model.draw(shader, color + brightness);
 	}
 }

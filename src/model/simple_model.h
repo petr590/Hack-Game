@@ -1,25 +1,28 @@
 #ifndef HACK_GAME__MODEL__SIMPLE_MODEL_H
 #define HACK_GAME__MODEL__SIMPLE_MODEL_H
 
-#include "model.h"
+#include "vao_model.h"
 #include <string>
 
 namespace hack_game {
 
-	class SimpleModel: public Model {
+	class SimpleModel: public VAOModel {
+		struct Vertex {
+			const glm::vec3 pos;
+			const glm::vec3 normal;
+
+			constexpr Vertex(const glm::vec3 pos, const glm::vec3 normal) noexcept:
+				pos(pos), normal(normal) {}
+		};
+
+
 		std::vector<Vertex> vertices;
-		std::vector<GLuint> indices;
-		GLuint vertexArray = 0;
 	
 	public:
-		const glm::vec3 color;
+		SimpleModel(uint32_t color, const std::string& path);
+		SimpleModel(uint32_t color, const SimpleModel&);
 
-		SimpleModel(GLuint color, const std::string& path);
-		SimpleModel(GLuint color, const SimpleModel&);
-
-		void generateVertexArray() override;
-		void draw(DrawContext&) const override;
-		void draw(DrawContext&, const glm::vec3& color) const override;
+		GLuint getVertexArray() const override;
 	};
 }
 

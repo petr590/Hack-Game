@@ -12,8 +12,8 @@ namespace hack_game {
 		explicit CompositeModel(std::initializer_list<Model*> models);
 
 		void generateVertexArray() override;
-		void draw(DrawContext&) const override;
-		void draw(DrawContext&, const glm::vec3& color) const override;
+		void draw(Shader&) const override;
+		void draw(Shader&, const glm::vec3& color) const override;
 	};
 }
 

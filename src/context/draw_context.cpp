@@ -1,0 +1,70 @@
+#include "draw_context.h"
+#include <stdexcept>
+#include <GL/glew.h>
+#include <glm/gtc/type_ptr.hpp>
+
+namespace hack_game {
+	Shader::Shader() noexcept:
+			id(0),
+			model      (-1),
+			view       (-1),
+			modelColor (-1),
+			centerPos  (-1),
+			progress   (-1),
+			mode       (-1),
+			seed       (-1) {}
+
+	Shader::Shader(GLuint shaderProgram):
+			id(shaderProgram),
+			model      (glGetUniformLocation(shaderProgram, "model")),
+			view       (glGetUniformLocation(shaderProgram, "view")),
+			modelColor (glGetUniformLocation(shaderProgram, "modelColor")),
+			centerPos  (glGetUniformLocation(shaderProgram, "centerPos")),
+			progress   (glGetUniformLocation(shaderProgram, "progress")),
+			mode       (glGetUniformLocation(shaderProgram, "mode")),
+			seed       (glGetUniformLocation(shaderProgram, "seed")) {}
+	
+
+	void Shader::setModel(const glm::mat4& mat) {
+		if (model >= 0) {
+			glUniformMatrix4fv(model, 1, GL_FALSE, glm::value_ptr(mat));
+		}
+	}
+
+	void Shader::setView(const glm::mat4& mat) {
+		if (view >= 0) {
+			glUniformMatrix4fv(view, 1, GL_FALSE, glm::value_ptr(mat));
+		}
+	}
+
+	void Shader::setModelColor(const glm::vec3& vec) {
+		if (modelColor >= 0) {
+			glUniform3fv(modelColor, 1, glm::value_ptr(vec));
+		}
+	}
+
+	void Shader::setCenterPos(const glm::vec3& vec) {
+		if (centerPos >= 0) {
+			glUniform3fv(centerPos, 1, glm::value_ptr(vec));
+		}
+	}
+
+	void Shader::setProgress(float value) {
+		if (progress >= 0) {
+			glUniform1f(progress, value);
+		}
+	}
+
+	// Remove if unused
+	void Shader::setMode(GLuint value) {
+		if (mode >= 0) {
+			glUniform1ui(mode, value);
+		}
+	}
+
+	void Shader::setSeed(GLint value) {
+		if (seed >= 0) {
+			glUniform1i(seed, value);
+		}
+	}
+}

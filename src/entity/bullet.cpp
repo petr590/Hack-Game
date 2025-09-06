@@ -2,9 +2,10 @@
 #include "enemy.h"
 #include "player.h"
 #include "block.h"
-#include "../model/models.h"
-#include "../context/draw_context.h"
-#include "../context/tick_context.h"
+#include "model/models.h"
+#include "context/draw_context.h"
+#include "context/tick_context.h"
+#include "util.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -21,17 +22,16 @@ namespace hack_game {
 
 	static const float LIMIT = 5.0f;
 	static const float ENEMY_BULLET_RADIUS = Enemy::RADIUS;
-	static const float PLAYER_BULLET_RADIUS = 0.005657f;
 
 
 	Bullet::Bullet(
-		DrawContext& drawContext,
+		Shader& shader,
 		const Model& model,
 		float angle,
 		const glm::vec3& velocity,
 		const glm::vec3& pos
 	) noexcept:
-			SimpleEntity(drawContext, model),
+			SimpleEntity(shader, model),
 			angle(angle),
 			velocity(velocity),
 			pos(pos) {}
@@ -41,6 +41,7 @@ namespace hack_game {
 
 		if (checkCollision(context)) {
 			context.removeEntity(shared_from_this());
+			return;
 		}
 
 		if (pos.x > LIMIT || pos.x < -LIMIT ||
@@ -53,8 +54,7 @@ namespace hack_game {
 	mat4 Bullet::getModelTransform() const {
 		mat4 model(1.0f);
 		model = glm::translate(model, pos);
-		model = glm::rotate(model, angle, vec3(0.0f, 1.0f, 0.0f));
-		return model;
+		return  glm::rotate(model, angle, vec3(0.0f, 1.0f, 0.0f));
 	}
 
 
@@ -77,36 +77,25 @@ namespace hack_game {
 		return nullptr;
 	}
 
-	static bool hasCollision(const vec3& pos1, const vec3& pos2) {
-		vec3 diff = pos1 - pos2;
-		return glm::dot(diff, diff) <= ENEMY_BULLET_RADIUS * ENEMY_BULLET_RADIUS;
-	}
-
 
 	// ---------------------------------------- PlayerBullet ----------------------------------------
 
-	PlayerBullet::PlayerBullet(DrawContext& drawContext, float angle, const glm::vec3& velocity, const glm::vec3& pos):
-			Bullet(drawContext, models::playerBullet, angle, velocity, pos) {}
-	
+	PlayerBullet::PlayerBullet(Shader& shader, float angle, const glm::vec3& velocity, const glm::vec3& pos):
+			Bullet(shader, models::playerBullet, angle, velocity, pos) {}
+
 
 	bool PlayerBullet::checkCollision(TickContext& context) {
 		Block* block = getCollisionWithBlock(context, vec2(pos.x, pos.z));
-
 		if (block != nullptr) {
-			block->damage(context, 1.0f);
+			block->damage(context, 1);
 			return true;
 		}
 
-		for (const auto& bullet : context.getBreakableEnemyBullets()) {
-			if (hasCollision(pos, bullet->getPos())) {
-				context.removeEntity(bullet);
+		for (const auto& damageable : context.getDamageableEnemyEntities()) {
+			if (!damageable->destroyed() && damageable->hasCollision(pos)) {
+				damageable->damage(context, 1);
 				return true;
 			}
-		}
-
-		if (hasCollision(pos, context.enemy->getPos())) {
-			context.enemy->damage(context, 1.0f);
-			return true;
 		}
 
 		return false;
@@ -115,13 +104,29 @@ namespace hack_game {
 
 	// ---------------------------------------- EnemyBullet ----------------------------------------
 
-	EnemyBullet::EnemyBullet(DrawContext& drawContext, bool unbreakable, const glm::vec3& velocity, const glm::vec3& pos):
+	EnemyBullet::EnemyBullet(Shader& shader, bool unbreakable, const glm::vec3& velocity, const glm::vec3& pos):
 			Bullet(
-				drawContext,
+				shader,
 				unbreakable ? models::unbreakableSphere : models::breakableSphere,
 				0.0f, velocity, pos
 			),
-			unbreakable(unbreakable) {}
+			Damageable(Side::ENEMY, unbreakable ? MAX_HP : 1) {}
+
+
+	mat4 EnemyBullet::getModelTransform() const {
+		mat4 model = Bullet::getModelTransform();
+		return glm::scale(model, vec3(0.75f));
+	}
+
+
+	bool EnemyBullet::hasCollision(const vec3& point) const {
+		return isPointInsideSphere(point, pos, ENEMY_BULLET_RADIUS);
+	}
+
+
+	void EnemyBullet::onDestroy(TickContext& context) {
+		context.removeEntity(shared_from_this());
+	}
 	
 	
 	bool EnemyBullet::checkCollision(TickContext& context) {
@@ -130,7 +135,7 @@ namespace hack_game {
 			return true;
 		}
 
-		if (hasCollision(pos, context.player->getPos())) {
+		if (hasCollision(context.player->getPos())) {
 			context.player->damage(context, 1);
 			return true;
 		}

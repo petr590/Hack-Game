@@ -8,6 +8,7 @@ namespace hack_game {
 		SimpleModel breakableCube   (0x41403B, "models/cube.obj");
 		SimpleModel unbreakableCube (0xE0DAD1, breakableCube);
 		SimpleModel lightCube       (0xFFFFFF, breakableCube);
+		SimpleModel blackCube       (0x000000, breakableCube);
 
 		SimpleModel playerBase   (0xE0DAD1, "models/player/base.obj");
 		SimpleModel playerCenter (0x41403B, "models/player/center.obj");
@@ -20,7 +21,9 @@ namespace hack_game {
 		SimpleModel breakableSphere   (0xF68118, sphere);
 		SimpleModel unbreakableSphere (0x3E0065, sphere);
 
-		SimpleModel shooter (0x7d746e, "models/shooter.obj");
+		SimpleModel minion (0x7d746e, "models/minion.obj");
+
+		FrameModel cubeFrame (0x000000, "models/cube-frame.obj");
 
 		CompositeModel player3hp { &playerBase, &playerCenter, &playerLeft, &playerRight };
 		CompositeModel player2hp { &playerBase, &playerCenter, &playerLeft };

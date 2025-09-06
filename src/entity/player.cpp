@@ -3,12 +3,11 @@
 #include "block.h"
 #include "bullet.h"
 #include "aabb.h"
-#include "../model/models.h"
-#include "../context/draw_context.h"
-#include "../context/tick_context.h"
+#include "model/models.h"
+#include "context/draw_context.h"
+#include "context/tick_context.h"
+#include "util.h"
 
-#define GLEW_STATIC
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -32,9 +31,9 @@ namespace hack_game {
 	const float BULLET_PERIOD = 0.1f;
 
 
-	Player::Player(DrawContext& drawContext, DrawContext& bulletDrawContext, float speed, const Camera& camera):
+	Player::Player(DrawContext& drawContext, float speed, const Camera& camera):
+			Damageable(Side::PLAYER, 3),
 			drawContext(drawContext),
-			bulletDrawContext(bulletDrawContext),
 			speed(speed),
 			camera(camera),
 			pos(TILE_SIZE * 8, 0.0f, TILE_SIZE * 8) {
@@ -42,8 +41,8 @@ namespace hack_game {
 		this->camera.move(pos);
 	}
 
-	GLuint Player::getShaderProgram() const {
-		return drawContext.shaderProgram;
+	GLuint Player::getShaderProgram() const noexcept {
+		return drawContext.mainShader.id;
 	}
 
 	void Player::updateAngle(float newTargetAngle) {
@@ -112,8 +111,8 @@ namespace hack_game {
 	}
 
 
-	static constexpr float INF = std::numeric_limits<float>().infinity();
-	static constexpr float NaN = std::numeric_limits<float>().quiet_NaN();
+	static constexpr float INF = std::numeric_limits<float>::infinity();
+	static constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
 
 	/**
 	 * Ищет точку пересечения отрезка и окружности. Если таких две, возвращает любую из них.
@@ -211,6 +210,10 @@ namespace hack_game {
 
 
 	static vec2 resolveEnemyCollision(const TickContext& context, const vec2& pos, vec2 offset) {
+		if (context.enemy->destroyed()) {
+			return offset;
+		}
+
 		const vec2 newPos = pos + offset;
 
 		const vec2 enemyPos = vec3ToVec2(context.enemy->getPos());
@@ -249,8 +252,7 @@ namespace hack_game {
 			}
 		}
 
-		offset = resolveEnemyCollision(context, pos, offset);
-		return offset;
+		return resolveEnemyCollision(context, pos, offset);
 	}
 
 
@@ -309,7 +311,7 @@ namespace hack_game {
 			vec3 bulletPos = pos + velocity * (TILE_SIZE * 0.5f);
 
 			context.addEntity(make_shared<PlayerBullet>(
-				bulletDrawContext, angle, velocity, bulletPos
+				drawContext.lightShader, angle, velocity, bulletPos
 			));
 		}
 	}
@@ -317,19 +319,21 @@ namespace hack_game {
 
 
 	void Player::draw() const {
-		glUseProgram(drawContext.shaderProgram);
-
 		mat4 modelMat(1.0f);
 		modelMat = translate(modelMat, pos);
 		modelMat = rotate(modelMat, angle, vec3(0.0f, 1.0f, 0.0f));
-		glUniformMatrix4fv(drawContext.modelUniform, 1, GL_FALSE, glm::value_ptr(modelMat));
+		drawContext.mainShader.setModel(modelMat);
 
-		if (hitpoints >= 3) models::player3hp.draw(drawContext);
-		if (hitpoints == 2) models::player2hp.draw(drawContext);
-		if (hitpoints <= 1) models::player1hp.draw(drawContext);
+		if (hitpoints >= 3) models::player3hp.draw(drawContext.mainShader);
+		if (hitpoints == 2) models::player2hp.draw(drawContext.mainShader);
+		if (hitpoints <= 1) models::player1hp.draw(drawContext.mainShader);
 	}
 
-	void Player::damage(TickContext& context, int32_t damage) {
-		hitpoints -= damage;
+
+	bool Player::hasCollision(const glm::vec3& point) const {
+		return isPointInsideSphere(point, pos, Enemy::RADIUS);
 	}
+
+
+	void Player::onDestroy(TickContext&) {} // do nothing
 }

@@ -1,7 +1,9 @@
 #include "shaders.h"
+#include "context/draw_context.h"
 
 #include <iostream>
 #include <fstream>
+#include <string>
 #include <memory>
 
 #include <GLFW/glfw3.h>
@@ -10,8 +12,11 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
+	using std::cout;
 	using std::cerr;
 	using std::endl;
+	using std::string;
+	using std::string_view;
 	using std::ios;
 	using std::ifstream;
 	using std::streamsize;
@@ -25,6 +30,12 @@ namespace hack_game {
 
 	GLuint compileShader(GLenum type, const char* filename) {
 		ifstream file(filename, ios::ate);
+
+		if (file.fail()) {
+			cerr << "Cannot open file \"" << filename << "\"" << endl;
+			exit(1);
+		}
+
 		const streamsize fsize = file.tellg();
 		
 		auto source = make_unique<char[]>(size_t(fsize + 1));
@@ -42,36 +53,40 @@ namespace hack_game {
 		
 		
 		glCompileShader(shader);
+
+		GLint logLength;
+		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+
+		string log(size_t(logLength), '\0');
+		glGetShaderInfoLog(shader, logLength, nullptr, log.data());
+
 		GLint success;
 		glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-		
-		if (!success) {
-			GLchar infoLog[LOG_SIZE];
-			glGetShaderInfoLog(shader, LOG_SIZE, nullptr, infoLog);
-			
+
+		if (success) {
+			if (logLength > 0) {
+				cout << log << endl;
+			}
+
+		} else {
 			const char* strType =
 					type == GL_VERTEX_SHADER ? "VERTEX" :
 					type == GL_FRAGMENT_SHADER ? "FRAGMENT" : "UNKNOWN";
 			
-			cerr << "ERROR::SHADER::" << strType << "::COMPILATION_FAILED\n" << infoLog << endl;
-			exit(0);
+			cerr << "ERROR::SHADER::" << strType << "::COMPILATION_FAILED\n" << log << endl;
+			exit(1);
 		}
 		
 		return shader;
 	}
 
 
-	GLuint createShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath, const char* geometryShaderPath) {
+	GLuint createShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath) {
 		// Читаем и компилируем шейдеры
 		GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderPath);
 		GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderPath);
 
-		GLuint geometryShader = 0;
-		if (geometryShaderPath != nullptr) {
-			geometryShader = compileShader(GL_GEOMETRY_SHADER, geometryShaderPath);
-		}
-		
-		if (vertexShader == 0 || fragmentShader == 0 || (geometryShader == 0 && geometryShaderPath != nullptr)) {
+		if (vertexShader == 0 || fragmentShader == 0) {
 			glfwTerminate();
 			exit(1);
 		}
@@ -81,7 +96,6 @@ namespace hack_game {
 		GLuint shaderProgram = glCreateProgram();
 		glAttachShader(shaderProgram, vertexShader);
 		glAttachShader(shaderProgram, fragmentShader);
-		if (geometryShader) glAttachShader(shaderProgram, geometryShader);
 
 		glLinkProgram(shaderProgram);
 		
@@ -96,30 +110,45 @@ namespace hack_game {
 		
 		glDeleteShader(vertexShader);
 		glDeleteShader(fragmentShader);
-		if (geometryShader) glDeleteShader(geometryShader);
 
 		return shaderProgram;
 	}
 
-	void initShaderUniforms(GLuint mainShader, std::initializer_list<GLuint> otherShaders) {
-		const mat4 projection = perspective(45.0f, GLfloat(width) / GLfloat(height), 0.1f, 100.0f);
-		
-		glUseProgram(mainShader);
 
-		GLint projectionUniform = glGetUniformLocation(mainShader, "projection");
-		GLint lightColorUniform = glGetUniformLocation(mainShader, "lightColor");
-		GLint lightPosUniform   = glGetUniformLocation(mainShader, "lightPos");
+	static const string ANIMATION_DIR = "shaders/animation/";
 
+	GLuint createAnimationShaderProgram(const char* vertexShaderName, const char* fragmentShaderName) {
+		string vertexShaderPath   = ANIMATION_DIR + vertexShaderName;
+		string fragmentShaderPath = ANIMATION_DIR + fragmentShaderName;
+		return createShaderProgram(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+	}
+
+
+	static void setProjection(GLuint shaderId, const mat4& projection) {
+		glUseProgram(shaderId);
+
+		GLint projectionUniform = glGetUniformLocation(shaderId, "projection");
 		glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, value_ptr(projection));
+	}
+
+
+	void initShaderUniforms(DrawContext& drawContext) {
+		const mat4 projection = perspective(45.0f, GLfloat(windowWidth) / GLfloat(windowHeight), 0.1f, 100.0f);
+		const GLuint mainShaderId = drawContext.mainShader.id;
+
+		glUseProgram(mainShaderId);
+
+		const GLint lightColorUniform = glGetUniformLocation(mainShaderId, "lightColor");
+		const GLint lightPosUniform   = glGetUniformLocation(mainShaderId, "lightPos");
+
 		glUniform3fv(lightColorUniform, 1, value_ptr(lightColor));
 		glUniform3fv(lightPosUniform, 1, value_ptr(lightPos));
 
+		setProjection(drawContext.mainShader.id, projection);
+		setProjection(drawContext.lightShader.id, projection);
 
-		for (GLuint program : otherShaders) {
-			glUseProgram(program);
-
-			projectionUniform = glGetUniformLocation(program, "projection");
-			glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, value_ptr(projection));
+		for (const auto& entry : drawContext.shaders) {
+			setProjection(entry.second.id, projection);
 		}
 	}
 }
