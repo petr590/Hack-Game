@@ -2,7 +2,7 @@
 #include "entity/enemy.h"
 #include "entity/player.h"
 #include "model/models.h"
-#include "context/draw_context.h"
+#include "context/shader.h"
 #include "context/tick_context.h"
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -12,8 +12,11 @@ namespace hack_game {
 	using glm::mat3;
 	using glm::mat4;
 
+	Animation::Animation(Shader& shader, Model& model, float size, float duration) noexcept:
+			SimpleEntity(shader, model), size(size), duration(duration) {}
+
 	Animation::Animation(Shader& shader, float size, float duration) noexcept:
-			SimpleEntity(shader, models::plane), size(size), duration(duration) {}
+			Animation(shader, models::plane, size, duration) {}
 	
 
 	void Animation::tick(TickContext& context) {
@@ -26,6 +29,7 @@ namespace hack_game {
 
 		if (time >= duration) {
 			context.removeEntity(shared_from_this());
+			onRemove();
 		}
 	}
 

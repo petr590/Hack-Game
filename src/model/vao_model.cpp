@@ -1,5 +1,4 @@
 #include "vao_model.h"
-#include "context/draw_context.h"
 #include "util.h"
 
 #define GLEW_STATIC
@@ -8,25 +7,17 @@
 namespace hack_game {
 	using glm::vec3;
 
-	VAOModel::VAOModel(uint32_t color) noexcept:
-			color(colorAsVec3(color)) {}
+	VAOModel::VAOModel() noexcept {}
 
-	VAOModel::VAOModel(uint32_t color, const VAOModel& model):
-			color(colorAsVec3(color)),
+	VAOModel::VAOModel(const VAOModel& model):
 			vertexArray(model.vertexArray),
 			indices(model.indices) {}
 
 	void VAOModel::generateVertexArray() {
-		vertexArray = getVertexArray();
+		vertexArray = createVertexArray();
 	}
 
-	void VAOModel::draw(Shader& shader) const {
-		draw(shader, color);
-	}
-
-	void VAOModel::draw(Shader& shader, const vec3& color) const {
-		shader.setModelColor(color);
-
+	void VAOModel::draw(Shader&) const {
 		assert(vertexArray != 0);
 
 		glBindVertexArray(vertexArray);

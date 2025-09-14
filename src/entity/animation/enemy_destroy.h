@@ -25,7 +25,7 @@ namespace hack_game {
 			Cube& operator=(Cube&&) = default;
 		};
 
-		std::vector<Cube> fadingCubes, solidCubes;
+		std::vector<Cube> fadingCubes, solidCubes, frameCubes;
 
 	public:
 		explicit EnemyDestroyAnimation(DrawContext&) noexcept;
@@ -33,10 +33,13 @@ namespace hack_game {
 		void tick(TickContext&) override;
 		void draw() const override;
 	
+	protected:
+		void onRemove() override;
+	
 	private:
 		void updateCubes(std::vector<Cube>&, float);
 		void addCube();
-		void drawCubes(const std::vector<Cube>&, GLuint) const;	
+		void drawCubes(const std::vector<Cube>&, GLuint, Model&, float) const;
 	};
 }
 

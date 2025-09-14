@@ -7,14 +7,16 @@
 namespace hack_game {
 
 	class FrameModel: public VAOModel {
+		const glm::vec3 color;
 		std::vector<glm::vec3> vertices;
 
 	public:
-		FrameModel(uint32_t color, const std::string& path);
+		FrameModel(uint32_t color, const char* relativePath);
 
-		GLuint getVertexArray() const override;
-
-		void draw(Shader&, const glm::vec3&) const override;
+		void draw(Shader&) const override;
+	
+	protected:
+		GLuint createVertexArray() override;
 	};
 }
 

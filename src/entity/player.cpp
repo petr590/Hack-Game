@@ -1,12 +1,12 @@
 #include "player.h"
 #include "enemy.h"
-#include "block.h"
 #include "bullet.h"
-#include "aabb.h"
 #include "model/models.h"
 #include "context/draw_context.h"
 #include "context/tick_context.h"
+#include "globals.h"
 #include "util.h"
+#include "scancodes.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -21,7 +21,6 @@ namespace hack_game {
 	using std::isnan;
 	using std::make_shared;
 
-	using glm::uvec2;
 	using glm::vec2;
 	using glm::vec3;
 	using glm::mat4;
@@ -60,59 +59,43 @@ namespace hack_game {
 		}
 	}
 
-	void Player::onKey(int key, int action) {
+	void Player::onKey(int scancode, int action) {
 		if (action != GLFW_PRESS && action != GLFW_RELEASE) return;
 
 		bool value = action == GLFW_PRESS;
-		switch (key) {
-			case GLFW_KEY_W: up = value; break;
-			case GLFW_KEY_S: down = value; break;
-			case GLFW_KEY_A: left = value; break;
-			case GLFW_KEY_D: right = value; break;
+		switch (scancode) {
+			case SCANCODE_W: up    = value; break;
+			case SCANCODE_A: left  = value; break;
+			case SCANCODE_S: down  = value; break;
+			case SCANCODE_D: right = value; break;
 
-			case GLFW_KEY_LEFT_SHIFT: fire = value; break;
+			case SCANCODE_SPACE: fire = value; break;
 
-			case GLFW_KEY_UP:    updateAngle(glm::radians(0.f));    break;
-			case GLFW_KEY_LEFT:  updateAngle(glm::radians(90.f));   break;
-			case GLFW_KEY_DOWN:  updateAngle(glm::radians(180.f));  break;
-			case GLFW_KEY_RIGHT: updateAngle(glm::radians(270.f));  break;
-		}
-	}
-
-
-	static const float EPSILON = 1e-6f;
-
-
-	static vec2 resolveBlockCollision(const TickContext& context, const vec2& pos, vec2 offset, const uvec2& mapPos) {
-		if (context.map[mapPos] == nullptr) {
-			return offset;
+			case SCANCODE_ARROW_UP:    updateAngle(glm::radians(0.f));   break;
+			case SCANCODE_ARROW_LEFT:  updateAngle(glm::radians(90.f));  break;
+			case SCANCODE_ARROW_DOWN:  updateAngle(glm::radians(180.f)); break;
+			case SCANCODE_ARROW_RIGHT: updateAngle(glm::radians(270.f)); break;
 		}
 
-		AABB block = context.map[mapPos]->getHitbox();
+		// switch (key) {
+		// 	case GLFW_KEY_W: up = value; break;
+		// 	case GLFW_KEY_A: left = value; break;
+		// 	case GLFW_KEY_S: down = value; break;
+		// 	case GLFW_KEY_D: right = value; break;
 
-		vec2 newPos = pos + offset;
-		
-		if (offset.x != 0 && block.containsInclusive(vec2(newPos.x, pos.y))) {
-			if (offset.x > 0) offset.x = max(0.0f, offset.x + (block.min.x - newPos.x - EPSILON));
-			else              offset.x = min(0.0f, offset.x + (block.max.x - newPos.x + EPSILON));
-		}
+		// 	case GLFW_KEY_LEFT_SHIFT: fire = value; break;
 
-		if (offset.y != 0 && block.containsInclusive(vec2(pos.x, newPos.y))) {
-			if (offset.y > 0) offset.y = max(0.0f, offset.y + (block.min.y - newPos.y - EPSILON));
-			else              offset.y = min(0.0f, offset.y + (block.max.y - newPos.y + EPSILON));
-		}
-
-		return offset;
-	}
-
-
-	static constexpr vec2 vec3ToVec2(const vec3& pos) {
-		return vec2(pos.x, pos.z);
+		// 	case GLFW_KEY_UP:    updateAngle(glm::radians(0.f));   break;
+		// 	case GLFW_KEY_LEFT:  updateAngle(glm::radians(90.f));  break;
+		// 	case GLFW_KEY_DOWN:  updateAngle(glm::radians(180.f)); break;
+		// 	case GLFW_KEY_RIGHT: updateAngle(glm::radians(270.f)); break;
+		// }
 	}
 
 
 	static constexpr float INF = std::numeric_limits<float>::infinity();
 	static constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
+
 
 	/**
 	 * Ищет точку пересечения отрезка и окружности. Если таких две, возвращает любую из них.
@@ -205,9 +188,10 @@ namespace hack_game {
 	static_assert(getIntersectPoint(vec2(0, 0), vec2(1, 1), vec2(0, 0), 1) == vec2(sqrt(0.5f), sqrt(0.5f)));
 	static_assert(all_isnan(getIntersectPoint(vec2(1, 1), vec2(2, 2), vec2(0, 0), 1)));
 
-	static_assert(!all_isnan(getIntersectPoint(vec2(0.5802, 0.2530), vec2(0.0000, 0.0042), vec2(0.5750, 0.2750), 0.0200)));
-	static const vec2 V = getIntersectPoint(vec2(0.5802, 0.2530), vec2(0.0000, 0.0042), vec2(0.5750, 0.2750), 0.0200);
 
+	static constexpr vec2 vec3ToVec2(const vec3& pos) {
+		return vec2(pos.x, pos.z);
+	}
 
 	static vec2 resolveEnemyCollision(const TickContext& context, const vec2& pos, vec2 offset) {
 		if (context.enemy->destroyed()) {
@@ -234,24 +218,7 @@ namespace hack_game {
 
 
 	static vec2 moveWithCollisions(const TickContext& context, const vec2& pos, vec2 offset) {
-		const vec2 newPos = pos + offset;
-		const uvec2 minPos = context.getMapPos(glm::min(pos, newPos) - EPSILON);
-		const uvec2 maxPos = context.getMapPos(glm::max(pos, newPos) + EPSILON);
-
-		offset = resolveBlockCollision(context, pos, offset, minPos);
-
-		if (minPos.x != maxPos.x) {
-			offset = resolveBlockCollision(context, pos, offset, uvec2(maxPos.x, minPos.y));
-		}
-
-		if (minPos.y != maxPos.y) {
-			offset = resolveBlockCollision(context, pos, offset, uvec2(minPos.x, maxPos.y));
-
-			if (minPos.x != maxPos.x) {
-				offset = resolveBlockCollision(context, pos, offset, maxPos);
-			}
-		}
-
+		offset = resolveBlockCollision(context, pos, offset);
 		return resolveEnemyCollision(context, pos, offset);
 	}
 
@@ -335,5 +302,7 @@ namespace hack_game {
 	}
 
 
-	void Player::onDestroy(TickContext&) {} // do nothing
+	void Player::onDestroy(TickContext&) {
+		playerDestroyed = true;
+	}
 }

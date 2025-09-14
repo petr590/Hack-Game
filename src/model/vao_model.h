@@ -7,24 +7,18 @@ namespace hack_game {
 
 	class VAOModel: public Model {
 	protected:
-		const glm::vec3 color;
 		GLuint vertexArray = 0;
 		std::vector<GLuint> indices;
 	
 	public:
-		VAOModel(uint32_t color) noexcept;
-		VAOModel(uint32_t color, const VAOModel&);
-
-		const glm::vec3& getColor() const noexcept {
-			return color;
-		}
+		VAOModel() noexcept;
+		VAOModel(const VAOModel&);
 
 		void generateVertexArray() override;
 		void draw(Shader&) const override;
-		void draw(Shader&, const glm::vec3& color) const override;
 	
 	protected:
-		virtual GLuint getVertexArray() const = 0;
+		virtual GLuint createVertexArray() = 0;
 	};
 }
 

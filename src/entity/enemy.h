@@ -8,6 +8,7 @@
 namespace hack_game {
 
 	class Animation;
+	class ColoredModel;
 
 
 	class Enemy: public SimpleEntity, public Damageable {
@@ -16,6 +17,7 @@ namespace hack_game {
 
 	protected:
 		DrawContext& drawContext;
+		const ColoredModel& coloredModel;
 		const float bulletSpawnPeriod;
 
 		glm::vec3 pos;

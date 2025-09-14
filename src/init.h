@@ -9,13 +9,23 @@ namespace hack_game {
 	class DrawContext;
 
 	extern int windowWidth, windowHeight, refreshRate;
-	extern std::shared_ptr<Player> player;
+
+	struct FramebufferInfo {
+		GLuint msFramebuffer;
+		GLuint msTexture;
+		GLuint msRenderbuffer;
+
+		GLuint framebuffer;
+		GLuint texture;
+	};
 
 	GLFWwindow* initGLFW();
-	void initGL();
+	FramebufferInfo initGL();
+	void changeFramebufferSize(const FramebufferInfo&);
 	
 	TickContext createTickContext(DrawContext&);
-	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+	void keyCallback(GLFWwindow*, int key, int scancode, int action, int mode);
+	void framebufferSizeCallback(GLFWwindow*, int width, int height);
 }
 
 #endif

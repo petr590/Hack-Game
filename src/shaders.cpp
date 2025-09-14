@@ -1,5 +1,6 @@
 #include "shaders.h"
 #include "context/draw_context.h"
+#include "dir_paths.h"
 
 #include <iostream>
 #include <fstream>
@@ -28,11 +29,11 @@ namespace hack_game {
 
 	const size_t LOG_SIZE = 512;
 
-	GLuint compileShader(GLenum type, const char* filename) {
-		ifstream file(filename, ios::ate);
+	GLuint compileShader(GLenum type, const char* path) {
+		ifstream file(path, ios::ate);
 
 		if (file.fail()) {
-			cerr << "Cannot open file \"" << filename << "\"" << endl;
+			cerr << "Cannot open file \"" << path << "\"" << endl;
 			exit(1);
 		}
 
@@ -81,7 +82,7 @@ namespace hack_game {
 	}
 
 
-	GLuint createShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath) {
+	static GLuint createShaderProgram0(const char* vertexShaderPath, const char* fragmentShaderPath) {
 		// Читаем и компилируем шейдеры
 		GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderPath);
 		GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderPath);
@@ -114,13 +115,16 @@ namespace hack_game {
 		return shaderProgram;
 	}
 
-
-	static const string ANIMATION_DIR = "shaders/animation/";
+	GLuint createShaderProgram(const char* vertexShaderName, const char* fragmentShaderName) {
+		string vertexShaderPath   = string(SHADERS_DIR) + vertexShaderName;
+		string fragmentShaderPath = string(SHADERS_DIR) + fragmentShaderName;
+		return createShaderProgram0(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+	}
 
 	GLuint createAnimationShaderProgram(const char* vertexShaderName, const char* fragmentShaderName) {
-		string vertexShaderPath   = ANIMATION_DIR + vertexShaderName;
-		string fragmentShaderPath = ANIMATION_DIR + fragmentShaderName;
-		return createShaderProgram(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+		string vertexShaderPath   = string(SHADERS_ANIMATION_DIR) + vertexShaderName;
+		string fragmentShaderPath = string(SHADERS_ANIMATION_DIR) + fragmentShaderName;
+		return createShaderProgram0(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
 	}
 
 

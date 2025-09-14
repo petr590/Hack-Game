@@ -11,6 +11,14 @@ namespace hack_game {
 
 		Camera(const glm::vec3& pos, const glm::vec3& target):
 				pos(pos), target(target) {}
+		
+		const glm::vec3& getPos() const noexcept {
+			return pos;
+		}
+		
+		const glm::vec3& getTarget() const noexcept {
+			return target;
+		}
 
 		void move(const glm::vec3& offset);
 		glm::mat4 getView() const;

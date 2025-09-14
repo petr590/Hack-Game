@@ -34,7 +34,7 @@ namespace hack_game {
 
 		GLuint getShaderProgram() const noexcept override;
 		
-		void onKey(int key, int action);
+		void onKey(int scancode, int action);
 		void tick(TickContext&) override;
 		void draw() const override;
 		bool hasCollision(const glm::vec3& point) const override;

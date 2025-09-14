@@ -15,6 +15,7 @@ namespace hack_game {
 		glm::mat3 viewMat3;
 
 	public:
+		Animation(Shader&, Model&, float size, float duration) noexcept;
 		Animation(Shader&, float size, float duration) noexcept;
 
 		float getTime() const noexcept {
@@ -32,6 +33,9 @@ namespace hack_game {
 		void tick(TickContext&) override;
 		void draw() const override;
 		glm::mat4 getModelTransform() const override;
+	
+	protected:
+		virtual void onRemove() {}
 	};
 }
 

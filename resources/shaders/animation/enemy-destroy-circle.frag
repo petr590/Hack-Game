@@ -4,8 +4,11 @@
 
 uniform vec3 centerPos;
 uniform float progress;
+uniform sampler2D texture0;
+uniform sampler2D texture1;
 
 in vec3 vertexPos;
+in vec2 vertexTexCoord;
 
 out vec4 result;
 
@@ -21,8 +24,11 @@ const float EXPLOSION_END   = 0.1;
 const float REST_START = 0.1;
 const float REST_END   = 0.3;
 
-const float FIG1_START = 0.15;
-const float FIG1_END = 0.15;
+const float FIG0_START = 0.15;
+const float FIG0_END   = 0.2;
+
+const float FIG1_START = 0.25;
+const float FIG1_END   = 0.3;
 
 
 vec4 blend(vec4 color1, vec4 color2) {
@@ -84,9 +90,14 @@ void drawCircle(float dist, float startTime, float endTime, float minRadius, flo
 }
 
 
+void drawFig0() {
+	vec2 scaledTexCoord = (vertexTexCoord - 0.5) * 200.0 + 0.5;
+	result = blend(result, texture(texture0, scaledTexCoord));
+}
+
 void drawFig1() {
-//	vec2 diff = centerPos.xz - vertexPos.xz;
-	// TODO
+	vec2 scaledTexCoord = (vertexTexCoord - 0.5) * 200.0 + 0.5;
+	result = blend(result, texture(texture1, scaledTexCoord));
 }
 
 
@@ -102,16 +113,18 @@ void main() {
 		drawCircle(dist, EXPLOSION_START, EXPLOSION_END, 0.6 * TILE_SIZE, 2 * TILE_SIZE, BIG_SHADE_WIDTH, GRAY(1.0, alpha));
 	}
 	
-	if (progress >= FIG1_START && progress <= FIG1_END) {
-		
-	}
-	
-	
 	if (progress >= REST_START && progress <= REST_END) {
 		float alpha = zoom(progress, REST_START, REST_END, 0.5, 0.0);
 		
 		drawCircle(dist, REST_START, REST_END, 0.8 * TILE_SIZE, 2 * TILE_SIZE, BIG_SHADE_WIDTH, GRAY(1.0, alpha));
 		drawCircle(dist, REST_START, REST_END, 0.0, 0.0, BIG_SHADE_WIDTH, vec4(1.0, 0.5, 0.5, alpha));
+	}
+	
+	
+	if (progress >= FIG0_START && progress <= FIG0_END) {
+		drawFig0();
+	} else if (progress >= FIG1_START && progress <= FIG1_END) {
+		drawFig1();
 	}
 	
 	

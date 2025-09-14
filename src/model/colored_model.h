@@ -6,7 +6,7 @@
 
 namespace hack_game {
 
-	class SimpleModel: public VAOModel {
+	class ColoredModel: public VAOModel {
 		struct Vertex {
 			const glm::vec3 pos;
 			const glm::vec3 normal;
@@ -16,13 +16,21 @@ namespace hack_game {
 		};
 
 
+		const glm::vec3 color;
 		std::vector<Vertex> vertices;
 	
 	public:
-		SimpleModel(uint32_t color, const std::string& path);
-		SimpleModel(uint32_t color, const SimpleModel&);
+		ColoredModel(uint32_t color, const char* relativePath);
+		ColoredModel(uint32_t color, const ColoredModel&);
 
-		GLuint getVertexArray() const override;
+		const glm::vec3& getColor() const noexcept {
+			return color;
+		}
+
+		GLuint createVertexArray() override;
+
+		void draw(Shader&) const override;
+		void draw(Shader&, const glm::vec3& color) const;
 	};
 }
 

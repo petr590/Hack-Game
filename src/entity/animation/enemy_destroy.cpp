@@ -3,6 +3,7 @@
 #include "model/models.h"
 #include "context/draw_context.h"
 #include "context/tick_context.h"
+#include "globals.h"
 
 #define GLEW_STATIC
 #include <GL/glew.h>
@@ -42,8 +43,14 @@ namespace hack_game {
 		return dstStart + (value - srcStart) * (dstEnd - dstStart) / (srcEnd - srcStart);
 	}
 
+	static constexpr float zoom(float value, float dstStart, float dstEnd) {
+		return dstStart + value * (dstEnd - dstStart);
+	}
+
 	static_assert(zoom(1, 0, 2, 6, 8) == 7);
 	static_assert(zoom(150, 100, 200, 0, 1) == 0.5f);
+	static_assert(zoom(0.5f, -100, 100) == 0);
+	static_assert(zoom(0, 100, -100) == 100);
 	
 
 
@@ -58,12 +65,15 @@ namespace hack_game {
 
 
 	EnemyDestroyAnimation::EnemyDestroyAnimation(DrawContext& drawContext) noexcept:
-			Animation(drawContext.nullShader, SIZE, DURATION),
+			Animation(drawContext.nullShader, models::texturedPlane, SIZE, DURATION),
 			circleShader (drawContext.shaders["enemyDestroyCircle"]),
 			squareShader (drawContext.shaders["enemyDestroySquare"]),
 			cubeShader   (drawContext.shaders["enemyDestroyCube"]),
 			seed(randomInt()),
-			view(1.0f) {}
+			view(1.0f) {
+		
+		destroyAnimationCount += 1;
+	}
 	
 
 	void EnemyDestroyAnimation::tick(TickContext& context) {
@@ -81,6 +91,11 @@ namespace hack_game {
 		
 		updateCubes(fadingCubes, context.deltaTime);
 		updateCubes(solidCubes, context.deltaTime);
+		updateCubes(frameCubes, context.deltaTime);
+	}
+
+	void EnemyDestroyAnimation::onRemove() {
+		destroyAnimationCount -= 1;
 	}
 
 
@@ -109,13 +124,26 @@ namespace hack_game {
 		const float minScale = zoom(time, CUBES_START, CUBES_END, 0.25f, 0.05f);
 		const float maxScale = zoom(time, CUBES_START, CUBES_END, 0.5f, 0.1f);
 		const float scale = randomBetween(minScale, maxScale);
-		const float lifetime = randomBetween(0.05f, 0.3f);
 
+		float lifetime;
 		std::vector<Cube>* cubes;
 
-		switch ((rand() >> 8) & 0x1) {
-			case 0: cubes = &fadingCubes; break;
-			case 1: cubes = &solidCubes; break;
+		switch ((rand() >> 8) & 0x7) {
+			case 0: case 1: case 2: case 3: case 4:
+				lifetime = randomBetween(0.05f, 0.3f);
+				cubes = &fadingCubes;
+				break;
+			
+			case 5: case 6:
+				lifetime = randomBetween(0.05f, 0.2f);
+				cubes = &solidCubes;
+				break;
+			
+			case 7:
+				lifetime = randomBetween(0.05f, 0.1f);
+				cubes = &frameCubes;
+				break;
+			
 			default: return;
 		}
 
@@ -155,25 +183,27 @@ namespace hack_game {
 		model.draw(circleShader);
 
 
-		if (time >= CUBES_START && (!fadingCubes.empty() || !solidCubes.empty())) {
+		if (time >= CUBES_START && (!fadingCubes.empty() || !solidCubes.empty() || !frameCubes.empty())) {
 			glUseProgram(cubeShader.id);
 			cubeShader.setView(view);
 
-			drawCubes(fadingCubes, MODE_FADING);
-			drawCubes(solidCubes, MODE_SOLID);
+			drawCubes(fadingCubes, MODE_FADING, models::blackCube, 1.0f);
+			drawCubes(solidCubes,  MODE_SOLID,  models::blackCube, 0.9f);
+			drawCubes(frameCubes,  MODE_SOLID,  models::cubeFrame, 0.8f);
 		}
 	}
 
-	void EnemyDestroyAnimation::drawCubes(const std::vector<Cube>& cubes, GLuint mode) const {
+	void EnemyDestroyAnimation::drawCubes(const std::vector<Cube>& cubes, GLuint mode, Model& model, float minScale) const {
 		cubeShader.setMode(mode);
 			
 		for (const Cube& cube : cubes) {
-			mat4 modelMat = glm::scale(cube.modelMat, vec3(cube.scale));
+			float progress = cube.lifetime / cube.maxLifetime;
+			mat4 modelMat = glm::scale(cube.modelMat, vec3(cube.scale * zoom(progress, 1.0f, minScale)));
 			
 			cubeShader.setModel(modelMat);
-			cubeShader.setProgress(cube.lifetime / cube.maxLifetime);
+			cubeShader.setProgress(progress);
 
-			models::blackCube.draw(cubeShader);
+			model.draw(cubeShader);
 		}
 	}
 

@@ -2,7 +2,8 @@
 #define HACK_GAME__GLOBALS_H
 
 namespace hack_game {
-	extern bool won, lost;
+	extern bool enemyDestroyed, playerDestroyed;
+	extern int destroyAnimationCount;
 }
 
 #endif

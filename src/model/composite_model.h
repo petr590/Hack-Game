@@ -13,7 +13,6 @@ namespace hack_game {
 
 		void generateVertexArray() override;
 		void draw(Shader&) const override;
-		void draw(Shader&, const glm::vec3& color) const override;
 	};
 }
 

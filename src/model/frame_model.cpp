@@ -1,5 +1,6 @@
 #include "frame_model.h"
-#include "context/draw_context.h"
+#include "context/shader.h"
+#include "dir_paths.h"
 #include "util.h"
 
 #include <fstream>
@@ -10,13 +11,17 @@
 
 namespace hack_game {
 	using std::string;
+	using std::ifstream;
 	using std::streamsize;
 	using std::numeric_limits;
 
 	using glm::vec3;
 
-	FrameModel::FrameModel(uint32_t color, const string& path): VAOModel(color) {
-		std::ifstream file(path);
+	FrameModel::FrameModel(uint32_t color, const char* relativePath):
+			color(colorAsVec3(color))
+	{
+		const string path = string(MODELS_DIR) + relativePath;
+		ifstream file(path);
 
 		if (!file.is_open()) {
 			throw std::ios_base::failure("Cannot open file '" + path + "'");
@@ -32,7 +37,10 @@ namespace hack_game {
 
 			if (tag == "l") {
 				file >> indices.emplace_back();
+				indices.back() -= 1;
+				
 				file >> indices.emplace_back();
+				indices.back() -= 1;
 				continue;
 			}
 
@@ -41,20 +49,19 @@ namespace hack_game {
 	}
 
 
-	GLuint FrameModel::getVertexArray() const {
-		GLuint VBO, EBO, VAO;
-		glGenBuffers(1, &VBO);
-		glGenBuffers(1, &EBO);
+	GLuint FrameModel::createVertexArray() {
+		GLuint buffers[2], VAO;
+		glGenBuffers(2, buffers);
 		glGenVertexArrays(1, &VAO);
 		
 		
 		glBindVertexArray(VAO);
 
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);	
-		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(vertices.size() * sizeof(vertices[0])), &vertices[0], GL_STATIC_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);	
+		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(vertices.size() * sizeof(vertices[0])), vertices.data(), GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);	
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(indices.size() * sizeof(indices[0])), &indices[0], GL_STATIC_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);	
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(indices.size() * sizeof(indices[0])), indices.data(), GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), nullptr);
 		glEnableVertexAttribArray(0);
@@ -63,9 +70,8 @@ namespace hack_game {
 		return VAO;
 	}
 
-	void FrameModel::draw(Shader& shader, const glm::vec3& color) const {
-		glBegin(GL_LINES);
-		VAOModel::draw(shader, color);
-		glEnd();
+	void FrameModel::draw(Shader& shader) const {
+		shader.setModelColor(color);
+		VAOModel::draw(shader);
 	}
 }

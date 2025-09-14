@@ -30,8 +30,9 @@ namespace hack_game {
 		if (!isnan(newAngle))
 			angle = newAngle;
 		
-		vec2 shift = glm::rotate(context.deltaTime * MINION_SPEED * ANGLE_NORMAL, angle);
-		pos += vec3(shift.x, 0, shift.y);
+		vec2 offset = glm::rotate(context.deltaTime * MINION_SPEED * ANGLE_NORMAL, angle);
+		offset = resolveBlockCollision(context, vec2(pos.x, pos.z), offset);
+		pos += vec3(offset.x, 0, offset.y);
 
 
 		time += context.deltaTime;

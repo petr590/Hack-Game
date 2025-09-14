@@ -1,43 +1,37 @@
 #ifndef HACK_GAME__MODEL__MODELS_H
 #define HACK_GAME__MODEL__MODELS_H
 
-#include "frame_model.h"
-#include "simple_model.h"
-#include "composite_model.h"
+#include "colored_model.h"
 
 namespace hack_game {
 	namespace models {
 
-		extern SimpleModel
+		extern ColoredModel
 				plane,
 				platform,
 
+				blackCube,
 				breakableCube,
 				unbreakableCube,
-				lightCube,
-				blackCube,
 
 				playerBase,
 				playerCenter,
 				playerLeft,
 				playerRight,
-
 				playerBullet,
 
 				sphere,
 				breakableSphere,
 				unbreakableSphere,
-
 				minion;
-		
 
-		extern FrameModel cubeFrame;
+		extern Model& player3hp;
+		extern Model& player2hp;
+		extern Model& player1hp;
 		
-
-		extern CompositeModel
-				player3hp,
-				player2hp,
-				player1hp;
+		extern Model& cubeFrame;
+		extern Model& texturedPlane;
+		extern Model& postprocessingModel;
 	}
 }
 

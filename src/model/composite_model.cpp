@@ -14,10 +14,4 @@ namespace hack_game {
 			model->draw(context);
 		}
 	}
-
-	void CompositeModel::draw(Shader& context, const vec3& color) const {
-		for (const Model* model : models) {
-			model->draw(context, color);
-		}
-	}
 }

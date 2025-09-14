@@ -26,7 +26,6 @@ namespace hack_game {
 
 		virtual void generateVertexArray() = 0;
 		virtual void draw(Shader&) const = 0;
-		virtual void draw(Shader&, const glm::vec3& color) const = 0;
 	};
 }
 

@@ -1,5 +1,6 @@
-#include "simple_model.h"
-#include "context/draw_context.h"
+#include "colored_model.h"
+#include "context/shader.h"
+#include "dir_paths.h"
 #include "util.h"
 
 #include <fstream>
@@ -7,21 +8,22 @@
 
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
 	using std::string;
 	using std::vector;
 	using std::map;
 	using std::pair;
+	using std::ifstream;
 	using std::streamsize;
 	using std::numeric_limits;
 
 	using glm::vec3;
 
 
-	SimpleModel::SimpleModel(uint32_t color, const string& path): VAOModel(color) {
-		std::ifstream file(path);
+	ColoredModel::ColoredModel(uint32_t color, const char* relativePath): color(colorAsVec3(color)) {
+		const string path = string(MODELS_DIR) + relativePath;
+		ifstream file(path);
 
 		if (!file.is_open()) {
 			throw std::ios_base::failure("Cannot open file '" + path + "'");
@@ -29,7 +31,7 @@ namespace hack_game {
 
 		vector<vec3> positions;
 		vector<vec3> normals;
-		map<pair<uint32_t, uint32_t>, uint32_t> verticesMap; // Ключ: {позиция, нормаль}, значение: индекс
+		map<pair<uint32_t, uint32_t>, uint32_t> verticesMap; // Ключ: {позиция, нормаль}, значение: индекс вершины
 
 		for (string tag; file >> tag;) {
 
@@ -81,24 +83,24 @@ namespace hack_game {
 	}
 
 
-	SimpleModel::SimpleModel(uint32_t color, const SimpleModel& model):
-		VAOModel(color, model),
+	ColoredModel::ColoredModel(uint32_t color, const ColoredModel& model):
+		VAOModel(model),
+		color(colorAsVec3(color)),
 		vertices(model.vertices) {}
 
 
-	GLuint SimpleModel::getVertexArray() const {
-		GLuint VBO, EBO, VAO;
-		glGenBuffers(1, &VBO);
-		glGenBuffers(1, &EBO);
+	GLuint ColoredModel::createVertexArray() {
+		GLuint buffers[2], VAO;
+		glGenBuffers(2, buffers);
 		glGenVertexArrays(1, &VAO);
 		
 		
 		glBindVertexArray(VAO);
 
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);	
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[0]);	
 		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(vertices.size() * sizeof(vertices[0])), &vertices[0], GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);	
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers[1]);	
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(indices.size() * sizeof(indices[0])), &indices[0], GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<GLvoid*>(offsetof(Vertex, pos)));
@@ -109,5 +111,15 @@ namespace hack_game {
 		
 		glBindVertexArray(0);
 		return VAO;
+	}
+
+
+	void ColoredModel::draw(Shader& shader) const {
+		draw(shader, color);
+	}
+
+	void ColoredModel::draw(Shader& shader, const vec3& color) const {
+		shader.setModelColor(color);
+		VAOModel::draw(shader);
 	}
 }

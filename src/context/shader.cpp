@@ -1,4 +1,4 @@
-#include "draw_context.h"
+#include "shader.h"
 #include <stdexcept>
 #include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -12,7 +12,9 @@ namespace hack_game {
 			centerPos  (-1),
 			progress   (-1),
 			mode       (-1),
-			seed       (-1) {}
+			seed       (-1),
+			texture0   (-1),
+			texture1   (-1) {}
 
 	Shader::Shader(GLuint shaderProgram):
 			id(shaderProgram),
@@ -22,7 +24,16 @@ namespace hack_game {
 			centerPos  (glGetUniformLocation(shaderProgram, "centerPos")),
 			progress   (glGetUniformLocation(shaderProgram, "progress")),
 			mode       (glGetUniformLocation(shaderProgram, "mode")),
-			seed       (glGetUniformLocation(shaderProgram, "seed")) {}
+			seed       (glGetUniformLocation(shaderProgram, "seed")),
+			texture0   (glGetUniformLocation(shaderProgram, "texture0")),
+			texture1   (glGetUniformLocation(shaderProgram, "texture1")) {
+		
+		if (texture0 >= 0 || texture1 >= 0) {
+			glUseProgram(id);
+			setTexture0(0);
+			setTexture1(1);
+		}
+	}
 	
 
 	void Shader::setModel(const glm::mat4& mat) {
@@ -65,6 +76,18 @@ namespace hack_game {
 	void Shader::setSeed(GLint value) {
 		if (seed >= 0) {
 			glUniform1i(seed, value);
+		}
+	}
+
+	void Shader::setTexture0(GLint value) {
+		if (texture0 >= 0) {
+			glUniform1i(texture1, value);
+		}
+	}
+
+	void Shader::setTexture1(GLint value) {
+		if (texture1 >= 0) {
+			glUniform1i(texture1, value);
 		}
 	}
 }

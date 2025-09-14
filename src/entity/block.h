@@ -4,19 +4,21 @@
 #include "simple_entity.h"
 #include "damageable.h"
 #include "aabb.h"
-#include "model/simple_model.h"
 #include <memory>
 
 namespace hack_game {
 
+	class ColoredModel;
+
+
 	class Block: public SimpleEntity, public Damageable {
-		const glm::vec3 color;
+		const ColoredModel& coloredModel;
 		float damageAnimationTime = 0;
 
 	public:
 		const glm::uvec2 pos;
 
-		Block(Shader& shader, const SimpleModel& model, hp_t hitpoints, const glm::uvec2& pos);
+		Block(Shader& shader, const ColoredModel& model, hp_t hitpoints, const glm::uvec2& pos);
 		
 		static Block breakable(Shader& shader, const glm::uvec2& pos);
 		static Block unbreakable(Shader& shader, const glm::uvec2& pos);

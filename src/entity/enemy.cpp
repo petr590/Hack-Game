@@ -21,12 +21,11 @@ namespace hack_game {
 	using glm::vec3;
 	using glm::mat4;
 
-	#define MODEL models::sphere
-
 	Enemy::Enemy(DrawContext& drawContext, float bulletSpawnPeriod, const glm::vec3& pos) noexcept:
-			SimpleEntity(drawContext.mainShader, MODEL),
+			SimpleEntity(drawContext.mainShader, models::sphere),
 			Damageable(Side::ENEMY, 7),
 			drawContext(drawContext),
+			coloredModel(models::sphere),
 			bulletSpawnPeriod(bulletSpawnPeriod),
 			pos(pos) {}
 
@@ -42,7 +41,7 @@ namespace hack_game {
 		Damageable::damage(context, damage);
 
 		if (destroyed()) {
-			won = true;
+			enemyDestroyed = true;
 
 			animation = make_shared<EnemyDestroyAnimation>(drawContext);
 			context.addEntity(animation);
@@ -69,9 +68,9 @@ namespace hack_game {
 		shader.setModel(getModelTransform());
 		
 		if (animation != nullptr && animation->getTime() <= BRIGHT_DURATION) {
-			model.draw(shader, MODEL.getColor() * 1.5f);
+			coloredModel.draw(shader, coloredModel.getColor() * 1.5f);
 		} else {
-			model.draw(shader);
+			coloredModel.draw(shader);
 		}
 
 		SimpleEntity::draw();

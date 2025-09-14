@@ -1,6 +1,6 @@
 #include "block.h"
 #include "model/models.h"
-#include "context/draw_context.h"
+#include "context/shader.h"
 #include "context/tick_context.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -14,10 +14,10 @@ namespace hack_game {
 	using glm::vec3;
 	using glm::mat4;
 
-	Block::Block(Shader& shader, const SimpleModel& model, hp_t hitpoints, const glm::uvec2& pos):
+	Block::Block(Shader& shader, const ColoredModel& model, hp_t hitpoints, const uvec2& pos):
 			SimpleEntity(shader, model),
 			Damageable(Side::ENEMY, hitpoints),
-			color(model.getColor()),
+			coloredModel(model),
 			pos(pos) {}
 	
 
@@ -80,6 +80,6 @@ namespace hack_game {
 		shader.setModel(modelMat);
 
 		float brightness = max(0.0f, damageAnimationTime * (1.25f / DAMAGE_ANIMATION_DURATION));
-		model.draw(shader, color + brightness);
+		coloredModel.draw(shader, coloredModel.getColor() + brightness);
 	}
 }

@@ -30,19 +30,23 @@ add_compile_options(
 )
 
 add_executable(main
+	src/start.cpp
 	src/main.cpp
 	src/init.cpp
 	src/shaders.cpp
 	src/util.cpp
+	src/debug.cpp
 
 	src/model/model.cpp
 	src/model/models.cpp
 	src/model/vao_model.cpp
 	src/model/frame_model.cpp
-	src/model/simple_model.cpp
+	src/model/colored_model.cpp
+	src/model/textured_model.cpp
 	src/model/composite_model.cpp
+	src/model/postprocessing_model.cpp
 
-	src/context/draw_context.cpp
+	src/context/shader.cpp
 	src/context/tick_context.cpp
 
 	src/entity/camera.cpp
@@ -61,4 +65,4 @@ add_executable(main
 )
 
 target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(main glfw GLEW GL)
+target_link_libraries(main glfw GLEW GL SOIL)
