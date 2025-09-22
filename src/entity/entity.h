@@ -2,6 +2,7 @@
 #define HACK_GAME__ENTITY__ENTITY_H
 
 #include "gl_fwd.h"
+#include <glm/vec3.hpp>
 
 namespace hack_game {
 
@@ -17,9 +18,9 @@ namespace hack_game {
 	public:
 		virtual ~Entity() = default;
 
+		virtual GLuint getShaderProgram() const noexcept = 0;
 		virtual void tick(TickContext&) = 0;
 		virtual void draw() const = 0;
-		virtual GLuint getShaderProgram() const noexcept = 0;
 
 		virtual bool isTransparent() const noexcept {
 			return false;

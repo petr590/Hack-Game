@@ -3,30 +3,40 @@ project(HackGame)
 
 set(CMAKE_CXX_STANDARD 20)
 
-# add_definitions("-O3")
-add_definitions("-g")
+
+if (BUILD_TYPE MATCHES "Debug")
+	message("Debug build")
+	add_compile_options(-g)
+else ()
+	message("Release build")
+	add_compile_options(-DNDEBUG)
+endif ()
+
 add_compile_options(
 	-O3
 	-Wall
 	-Wextra
 	-Wpedantic
 	
-	-Wcast-align
-	-Wcast-qual
-	-Wenum-compare
+    -Wcast-qual
+    -Wold-style-cast
 	
-	-Wctor-dtor-privacy
-	-Wnon-virtual-dtor
-	-Woverloaded-virtual
-	-Wredundant-decls
-	-Wsign-promo
+    -Wctor-dtor-privacy
+    -Wnon-virtual-dtor
+    -Woverloaded-virtual
+    -Wduplicated-branches
+    -Wduplicated-cond
+    -Wshadow=compatible-local
+    -Wzero-as-null-pointer-constant
+    -Wextra-semi
+    -Wsign-promo
+    -Wlogical-op
+
+    -Wno-float-equal
+    -Wno-conversion
+    -Wno-sign-conversion
 	
-	-Wduplicated-branches
-	-Wduplicated-cond
-	-Wshadow=compatible-local
-	-Wzero-as-null-pointer-constant
-#	-Wconversion
-	-Wsign-conversion
+	-Werror=return-type
 )
 
 add_executable(main
@@ -59,9 +69,11 @@ add_executable(main
 	src/entity/damageable.cpp
 
 	src/entity/animation/animation.cpp
+	src/entity/animation/billboard_animation.cpp
 	src/entity/animation/enemy_damage.cpp
 	src/entity/animation/enemy_destroy.cpp
 	src/entity/animation/minion_destroy.cpp
+	src/entity/animation/player_damage.cpp
 )
 
 target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/src)

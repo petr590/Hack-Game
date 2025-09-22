@@ -6,17 +6,19 @@
 
 namespace hack_game {
 
+	class EntityWithPos;
+
 	class Animation: public SimpleEntity, public std::enable_shared_from_this<Entity> {
 	protected:
+		const std::shared_ptr<const EntityWithPos> entity;
 		const float size;
 		const float duration;
 		float time = 0;
 		glm::vec3 pos;
-		glm::mat3 viewMat3;
 
 	public:
-		Animation(Shader&, Model&, float size, float duration) noexcept;
-		Animation(Shader&, float size, float duration) noexcept;
+		Animation(std::shared_ptr<const EntityWithPos>&&, Shader&, Model&, float size, float duration) noexcept;
+		Animation(std::shared_ptr<const EntityWithPos>&&, Shader&, float size, float duration) noexcept;
 
 		float getTime() const noexcept {
 			return time;

@@ -1,12 +1,13 @@
 #include "player.h"
 #include "enemy.h"
 #include "bullet.h"
+#include "animation/player_damage.h"
 #include "model/models.h"
 #include "context/draw_context.h"
 #include "context/tick_context.h"
+#include "scancodes.h"
 #include "globals.h"
 #include "util.h"
-#include "scancodes.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -16,6 +17,7 @@
 namespace hack_game {
 	using std::max;
 	using std::min;
+	using std::clamp;
 	using std::pow;
 	using std::sqrt;
 	using std::isnan;
@@ -26,9 +28,16 @@ namespace hack_game {
 	using glm::mat4;
 	using glm::quat;
 
-	const float PAD = 0.015f;
-	const float BULLET_PERIOD = 0.1f;
+	static const float PAD = 0.015f;
+	static const float ROTATE_SPEED = 360 * 3;
+	static const float BULLET_SPEED = 15 * TILE_SIZE;
+	static const float BULLET_PERIOD = 0.1f;
 
+	static const float DARK_DURATION = 0.5f;
+	static const float FADE_DURATION = 0.3f;
+
+
+	// ------------------------------------------ Player ------------------------------------------
 
 	Player::Player(DrawContext& drawContext, float speed, const Camera& camera):
 			Damageable(Side::PLAYER, 3),
@@ -41,7 +50,11 @@ namespace hack_game {
 	}
 
 	GLuint Player::getShaderProgram() const noexcept {
-		return drawContext.mainShader.id;
+		return drawContext.mainShader.getId();
+	}
+
+	std::shared_ptr<const Player> Player::shared_from_this() const {
+		return std::dynamic_pointer_cast<const Player>(std::enable_shared_from_this<Entity>::shared_from_this());
 	}
 
 	void Player::updateAngle(float newTargetAngle) {
@@ -92,6 +105,8 @@ namespace hack_game {
 		// }
 	}
 
+
+	// -------------------------------------- collisions ---------------------------------------
 
 	static constexpr float INF = std::numeric_limits<float>::infinity();
 	static constexpr float NaN = std::numeric_limits<float>::quiet_NaN();
@@ -252,9 +267,6 @@ namespace hack_game {
 	}
 
 
-	const float ROTATE_SPEED = 360 * 3; // deg/sec
-	const float BULLET_SPEED = 15 * TILE_SIZE; // m/sec
-
 	void Player::tick(TickContext& context) {
 		move(context);
 
@@ -284,21 +296,47 @@ namespace hack_game {
 	}
 
 
+	bool Player::hasCollision(const vec3& point) const {
+		return isPointInsideSphere(point, pos, Enemy::RADIUS);
+	}
+
+
+	// ------------------------------------------- draw -------------------------------------------
 
 	void Player::draw() const {
 		mat4 modelMat(1.0f);
 		modelMat = translate(modelMat, pos);
 		modelMat = rotate(modelMat, angle, vec3(0.0f, 1.0f, 0.0f));
-		drawContext.mainShader.setModel(modelMat);
 
-		if (hitpoints >= 3) models::player3hp.draw(drawContext.mainShader);
-		if (hitpoints == 2) models::player2hp.draw(drawContext.mainShader);
-		if (hitpoints <= 1) models::player1hp.draw(drawContext.mainShader);
+		Shader& mainShader = drawContext.mainShader;
+
+		mainShader.setModel(modelMat);
+
+		bool isDark = animation != nullptr && !animation->isFinished() && animation->getTime() <= DARK_DURATION + FADE_DURATION;
+
+		if (isDark) {
+			mainShader.setModelBrightness(clamp(invLerp(animation->getTime(), DARK_DURATION, DARK_DURATION + FADE_DURATION), 0.0f, 1.0f));
+		}
+
+		if (hitpoints >= 3) models::player3hp.draw(mainShader);
+		if (hitpoints == 2) models::player2hp.draw(mainShader);
+		if (hitpoints <= 1) models::player1hp.draw(mainShader);
+
+		if (isDark) {
+			mainShader.setModelBrightness(1.0f);
+		}
 	}
 
 
-	bool Player::hasCollision(const glm::vec3& point) const {
-		return isPointInsideSphere(point, pos, Enemy::RADIUS);
+	// ------------------------------------------ damage ------------------------------------------
+
+	void Player::damage(TickContext& context, hp_t damage) {
+		Damageable::damage(context, damage);
+
+		if (!destroyed() && (animation == nullptr || animation->isFinished())) {
+			animation = make_shared<PlayerDamageAnimation>(std::move(shared_from_this()), drawContext);
+			context.addEntity(animation);
+		}
 	}
 
 

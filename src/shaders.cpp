@@ -21,6 +21,7 @@ namespace hack_game {
 	using std::ios;
 	using std::ifstream;
 	using std::streamsize;
+	using std::unique_ptr;
 	using std::make_unique;
 
 	using glm::mat4;
@@ -29,7 +30,7 @@ namespace hack_game {
 
 	const size_t LOG_SIZE = 512;
 
-	GLuint compileShader(GLenum type, const char* path) {
+	static unique_ptr<const char[]> readFile(const char* path) {
 		ifstream file(path, ios::ate);
 
 		if (file.fail()) {
@@ -39,16 +40,28 @@ namespace hack_game {
 
 		const streamsize fsize = file.tellg();
 		
-		auto source = make_unique<char[]>(size_t(fsize + 1));
-		char* const ptr = source.get();
-		ptr[fsize] = '\0';
+		auto data = make_unique<char[]>(size_t(fsize + 1));
+		data[fsize] = '\0';
 		
 		file.seekg(0);
-		file.read(ptr, fsize);
+		file.read(data.get(), fsize);
 		file.close();
-		
+
+		return data;
+	}
+
+	static GLuint compileShader(GLenum type, const char* path, const unique_ptr<const char[]>& prelude) {
+		unique_ptr<const char[]> source = readFile(path);
 		GLuint shader = glCreateShader(type);
-		glShaderSource(shader, 1, &ptr, nullptr);
+
+		if (prelude != nullptr) {
+			const char* strings[] = { prelude.get(), source.get() };
+			glShaderSource(shader, std::size(strings), strings, nullptr);
+
+		} else {
+			const char* string = source.get();
+			glShaderSource(shader, 1, &string, nullptr);
+		}
 		
 		source.reset();
 		
@@ -82,10 +95,10 @@ namespace hack_game {
 	}
 
 
-	static GLuint createShaderProgram0(const char* vertexShaderPath, const char* fragmentShaderPath) {
+	static GLuint createShaderProgram0(const char* vertexShaderPath, const char* fragmentShaderPath, const unique_ptr<const char[]>& prelude) {
 		// Читаем и компилируем шейдеры
-		GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderPath);
-		GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderPath);
+		GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexShaderPath, prelude);
+		GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderPath, prelude);
 
 		if (vertexShader == 0 || fragmentShader == 0) {
 			glfwTerminate();
@@ -118,13 +131,23 @@ namespace hack_game {
 	GLuint createShaderProgram(const char* vertexShaderName, const char* fragmentShaderName) {
 		string vertexShaderPath   = string(SHADERS_DIR) + vertexShaderName;
 		string fragmentShaderPath = string(SHADERS_DIR) + fragmentShaderName;
-		return createShaderProgram0(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+		return createShaderProgram0(vertexShaderPath.c_str(), fragmentShaderPath.c_str(), nullptr);
 	}
 
+	static unique_ptr<const char[]> prelude = nullptr;
+
 	GLuint createAnimationShaderProgram(const char* vertexShaderName, const char* fragmentShaderName) {
+		if (prelude == nullptr) {
+			prelude = readFile(SHADERS_ANIMATION_DIR "common.glsl");
+		}
+
 		string vertexShaderPath   = string(SHADERS_ANIMATION_DIR) + vertexShaderName;
 		string fragmentShaderPath = string(SHADERS_ANIMATION_DIR) + fragmentShaderName;
-		return createShaderProgram0(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+		return createShaderProgram0(vertexShaderPath.c_str(), fragmentShaderPath.c_str(), prelude);
+	}
+
+	void onShadersLoaded() {
+		prelude.reset();
 	}
 
 
@@ -138,7 +161,7 @@ namespace hack_game {
 
 	void initShaderUniforms(DrawContext& drawContext) {
 		const mat4 projection = perspective(45.0f, GLfloat(windowWidth) / GLfloat(windowHeight), 0.1f, 100.0f);
-		const GLuint mainShaderId = drawContext.mainShader.id;
+		const GLuint mainShaderId = drawContext.mainShader.getId();
 
 		glUseProgram(mainShaderId);
 
@@ -148,11 +171,11 @@ namespace hack_game {
 		glUniform3fv(lightColorUniform, 1, value_ptr(lightColor));
 		glUniform3fv(lightPosUniform, 1, value_ptr(lightPos));
 
-		setProjection(drawContext.mainShader.id, projection);
-		setProjection(drawContext.lightShader.id, projection);
+		setProjection(drawContext.mainShader.getId(), projection);
+		setProjection(drawContext.lightShader.getId(), projection);
 
 		for (const auto& entry : drawContext.shaders) {
-			setProjection(entry.second.id, projection);
+			setProjection(entry.second.getId(), projection);
 		}
 	}
 }

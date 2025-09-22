@@ -1,9 +1,7 @@
-#version 330 core
-
 uniform vec3 centerPos;
 uniform float progress;
 
-in vec3 vertexPos;
+in vec3 fragPos;
 
 out vec4 color;
 
@@ -13,9 +11,7 @@ const float WIDTH_PERIOD = 0.75;
 const float EPSILON = 0.003;
 
 void main() {
-	vec3 diff = centerPos - vertexPos;
-	float dist = length(vec3(diff));
-	
+	float dist = length(vec3(centerPos - fragPos));
 	float width = (mod(progress - WIDTH_OFFSET, WIDTH_PERIOD) + 0.01) * 0.012;
 	
 	float outer = (progress + 1.0) * TILE_SIZE * 0.5;

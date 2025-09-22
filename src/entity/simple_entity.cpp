@@ -6,7 +6,7 @@
 
 namespace hack_game {
 	GLuint SimpleEntity::getShaderProgram() const noexcept {
-		return shader.id;
+		return shader.getId();
 	}
 
 	void SimpleEntity::draw() const {

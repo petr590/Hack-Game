@@ -16,6 +16,7 @@ namespace hack_game {
 	GLuint createShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath);
 	GLuint createAnimationShaderProgram(const char* vertexShaderName, const char* fragmentShaderName);
 	void initShaderUniforms(DrawContext&);
+	void onShadersLoaded();
 }
 
 #endif

@@ -3,6 +3,7 @@
 
 #include "simple_entity.h"
 #include "damageable.h"
+#include "entity_with_pos.h"
 #include <memory>
 
 namespace hack_game {
@@ -11,7 +12,7 @@ namespace hack_game {
 	class ColoredModel;
 
 
-	class Enemy: public SimpleEntity, public Damageable {
+	class Enemy: public SimpleEntity, public Damageable, public EntityWithPos {
 	public:
 		static constexpr float RADIUS = 0.02f;
 
@@ -27,7 +28,7 @@ namespace hack_game {
 	public:
 		Enemy(DrawContext&, float bulletSpawnPeriod, const glm::vec3& pos) noexcept;
 
-		const glm::vec3& getPos() const noexcept {
+		const glm::vec3& getPos() const noexcept override {
 			return pos;
 		}
 		
@@ -36,6 +37,8 @@ namespace hack_game {
 		void tick(TickContext&) override;
 		void draw() const override;
 		glm::mat4 getModelTransform() const override;
+
+		std::shared_ptr<const Enemy> shared_from_this() const;
 	
 	protected:
 		virtual void spawnBullets(TickContext&) = 0;

@@ -2,11 +2,14 @@
 #define HACK_GAME__ENTITY__PLAYER_H
 
 #include "damageable.h"
+#include "entity_with_pos.h"
 #include "camera.h"
 
 namespace hack_game {
 
-	class Player final: public Damageable {
+	class Animation;
+
+	class Player final: public Damageable, public EntityWithPos {
 		DrawContext& drawContext;
 		const float speed;
 		Camera camera;
@@ -20,11 +23,12 @@ namespace hack_game {
 		float angle = 0.0f;
 		float targetAngle = 0.0f;
 		float timeSinceLastBullet = 0.0f;
+		std::shared_ptr<Animation> animation;
 
 	public:
-		Player(DrawContext& drawContext, float speed, const Camera&);
+		Player(DrawContext&, float speed, const Camera&);
 
-		const glm::vec3& getPos() const noexcept {
+		const glm::vec3& getPos() const noexcept override {
 			return pos;
 		}
 		
@@ -33,12 +37,14 @@ namespace hack_game {
 		}
 
 		GLuint getShaderProgram() const noexcept override;
+		std::shared_ptr<const Player> shared_from_this() const;
 		
 		void onKey(int scancode, int action);
 		void tick(TickContext&) override;
 		void draw() const override;
-		bool hasCollision(const glm::vec3& point) const override;
-	
+		bool hasCollision(const glm::vec3&) const override;
+		void damage(TickContext&, hp_t) override;
+			
 	protected:
 		void onDestroy(TickContext&) override;
 

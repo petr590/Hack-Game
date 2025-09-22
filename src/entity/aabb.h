@@ -9,10 +9,10 @@ namespace hack_game {
 		glm::vec2 max;
 
 		constexpr AABB(const glm::vec2& min, const glm::vec2& max) noexcept:
-				min(min), max(max) {};
+				min(min), max(max) {}
 
 		constexpr AABB(float minX, float minY, float maxX, float maxY) noexcept:
-				min(minX, minY), max(maxX, maxY) {};
+				min(minX, minY), max(maxX, maxY) {}
 		
 
 		constexpr bool containsInclusive(const glm::vec2& p) const noexcept {

@@ -10,6 +10,11 @@ namespace hack_game {
 	using glm::vec3;
 	using glm::uvec2;
 
+	static_assert(zoom(1, 0, 2, 6, 8) == 7);
+	static_assert(zoom(150, 100, 200, 0, 1) == 0.5f);
+	static_assert(invLerp(-100, 100, 0) == 0.5f);
+	static_assert(invLerp(100, -100, 100) == 0);
+
 	static_assert(isPointInsideSphere(vec3(0), vec3(0), 0));
 	static_assert(isPointInsideSphere(vec3(0), vec3(1), 1.7320508f)); // sqrt(3)
 	static_assert(!isPointInsideSphere(vec3(0), vec3(1), 1.7320507f));

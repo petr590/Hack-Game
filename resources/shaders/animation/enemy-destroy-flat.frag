@@ -1,12 +1,10 @@
-#version 330 core
-
 #define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
 
 uniform vec3 centerPos;
 uniform float progress;
 uniform int seed;
 
-in vec3 vertexPos;
+in vec3 fragPos;
 
 out vec4 result;
 
@@ -17,34 +15,9 @@ const float SQUARE_ANGLE = radians(30.0);
 const float SQUARE_ANGLE_SIN = sin(SQUARE_ANGLE);
 const float SQUARE_ANGLE_COS = cos(SQUARE_ANGLE);
 
-const float NOISE_START = 0.05;
 const int NOISE_OUTER_RADIUS = 25;
 const int NOISE_INNER_RADIUS = 22;
-
-
-vec4 blend(vec4 color1, vec4 color2) {
-	float alpha = color2.a + color1.a * (1.0 - color2.a);
-	vec3 rgb = vec3(0.0);
-	
-	if (alpha > 0.0) {
-		rgb = (color2.rgb * color2.a + color1.rgb * color1.a * (1.0 - color2.a)) / alpha;
-	}
-	
-	return vec4(rgb, alpha);
-}
-
-float zoom(float value, float srcStart, float srcEnd, float dstStart, float dstEnd) {
-	return mix(dstStart, dstEnd, (value - srcStart) / (srcEnd - srcStart));
-}
-
-vec2 rotate(vec2 vec, float sin_v, float cos_v) {
-	return vec2(
-		vec.x * cos_v - vec.y * sin_v,
-		vec.x * sin_v + vec.y * cos_v
-	);
-}
-
-
+const float NOISE_START = 0.05;
 const float NOISE_CHANCE = 0.25;
 
 float simpleNoise(ivec2 pos) {
@@ -81,7 +54,7 @@ void main() {
 	
 	float alpha = max(0.0, mod(0.025 - progress, 0.1) - 0.05) * (5.5 - 20.0 * progress);
 	
-	vec2 pos = rotate(centerPos.xz - vertexPos.xz, SQUARE_ANGLE_SIN, SQUARE_ANGLE_COS);
+	vec2 pos = rotate(centerPos.xz - fragPos.xz, SQUARE_ANGLE_SIN, SQUARE_ANGLE_COS);
 	vec2 dist = abs(pos);
 	float size = 1.0 * progress + 0.1;
 	

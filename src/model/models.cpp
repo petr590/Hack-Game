@@ -38,7 +38,7 @@ namespace hack_game {
 		};
 
 		TexturedModel texturedModels[] = {
-			TexturedModel("plane.obj", {"enemy-destroy-1.png", "enemy-destroy-2.png"}),
+			TexturedModel("plane.obj", {"enemy-destroy-1.png", "enemy-destroy-2.png", "enemy-destroy-3.png"}),
 		};
 
 		PostprocessingModel postprocessingModels[] = {

@@ -4,8 +4,8 @@
 namespace hack_game {
 
 	static const float SIZE = 5;
-	static const float DURATION = 0.35f * 10;
+	static const float DURATION = 0.35f * 5;
 
-	MinionDestroyAnimation::MinionDestroyAnimation(DrawContext& drawContext) noexcept:
-			Animation(drawContext.shaders["minionDestroy"], SIZE, DURATION) {}
+	MinionDestroyAnimation::MinionDestroyAnimation(std::shared_ptr<const EntityWithPos>&& entity, DrawContext& drawContext) noexcept:
+			BillboardAnimation(std::move(entity), drawContext.shaders.at("minionDestroy"), SIZE, DURATION) {}
 }

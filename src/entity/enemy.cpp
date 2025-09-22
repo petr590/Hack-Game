@@ -21,6 +21,12 @@ namespace hack_game {
 	using glm::vec3;
 	using glm::mat4;
 
+	using shared_entity = std::enable_shared_from_this<Entity>;
+
+
+	static const float BRIGHT_DURATION = 0.04f;
+
+
 	Enemy::Enemy(DrawContext& drawContext, float bulletSpawnPeriod, const glm::vec3& pos) noexcept:
 			SimpleEntity(drawContext.mainShader, models::sphere),
 			Damageable(Side::ENEMY, 7),
@@ -34,8 +40,10 @@ namespace hack_game {
 		return isPointInsideSphere(point, pos, RADIUS);
 	}
 
+	std::shared_ptr<const Enemy> Enemy::shared_from_this() const {
+		return std::dynamic_pointer_cast<const Enemy>(shared_entity::shared_from_this());
+	}
 
-	static const float BRIGHT_DURATION = 0.04f;
 
 	void Enemy::damage(TickContext& context, hp_t damage) {
 		Damageable::damage(context, damage);
@@ -43,13 +51,13 @@ namespace hack_game {
 		if (destroyed()) {
 			enemyDestroyed = true;
 
-			animation = make_shared<EnemyDestroyAnimation>(drawContext);
+			animation = make_shared<EnemyDestroyAnimation>(std::move(shared_from_this()), drawContext);
 			context.addEntity(animation);
-			context.removeEntity(shared_from_this());
+			context.removeEntity(shared_entity::shared_from_this());
 
-		} else if (animation == nullptr || !animation->isFinished()) {
+		} else if (animation == nullptr || animation->isFinished()) {
 
-			animation = make_shared<EnemyDamageAnimation>(drawContext);
+			animation = make_shared<EnemyDamageAnimation>(std::move(shared_from_this()), drawContext);
 			context.addEntity(animation);
 		}
 	}
@@ -65,15 +73,18 @@ namespace hack_game {
 	}
 
 	void Enemy::draw() const {
-		shader.setModel(getModelTransform());
-		
-		if (animation != nullptr && animation->getTime() <= BRIGHT_DURATION) {
-			coloredModel.draw(shader, coloredModel.getColor() * 1.5f);
-		} else {
-			coloredModel.draw(shader);
-		}
+		bool bright = animation != nullptr && animation->getTime() <= BRIGHT_DURATION;
 
-		SimpleEntity::draw();
+		if (bright) {
+			shader.setModelBrightness(1.5f);
+		}
+		
+		shader.setModel(getModelTransform());
+		coloredModel.draw(shader);
+
+		if (bright) {
+			shader.setModelBrightness(1.0f);
+		}
 	}
 
 	mat4 Enemy::getModelTransform() const {

@@ -1,14 +1,13 @@
-#version 330 core
-
 #define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
 
 uniform vec3 centerPos;
 uniform float progress;
 uniform sampler2D texture0;
 uniform sampler2D texture1;
+uniform sampler2D texture2;
 
-in vec3 vertexPos;
-in vec2 vertexTexCoord;
+in vec3 fragPos;
+in vec2 fragTexCoord;
 
 out vec4 result;
 
@@ -30,22 +29,12 @@ const float FIG0_END   = 0.2;
 const float FIG1_START = 0.25;
 const float FIG1_END   = 0.3;
 
+const float FIG2_START = 0.35;
+const float FIG2_END   = 0.4;
 
-vec4 blend(vec4 color1, vec4 color2) {
-	float alpha = color2.a + color1.a * (1.0 - color2.a);
-	vec3 rgb = vec3(0.0);
-	
-	if (alpha > 0.0) {
-		rgb = (color2.rgb * color2.a + color1.rgb * color1.a * (1.0 - color2.a)) / alpha;
-	}
-	
-	return vec4(rgb, alpha);
-}
-
-
-float zoom(float value, float srcStart, float srcEnd, float dstStart, float dstEnd) {
-	return mix(dstStart, dstEnd, (value - srcStart) / (srcEnd - srcStart));
-}
+const float FIG2_ANGLE = radians(45.0);
+const float FIG2_ANGLE_SIN = sin(FIG2_ANGLE);
+const float FIG2_ANGLE_COS = cos(FIG2_ANGLE);
 
 
 bool drawRing(float dist, float startTime, float endTime, float minRadius, float maxRadius, float width, float shadeWidth, vec3 rgb) {
@@ -82,28 +71,21 @@ void drawCircle(float dist, float startTime, float endTime, float minRadius, flo
 	
 	color.a *= smoothstep(radius + shadeWidth, radius, dist);
 	
-	if (color.a < 0.01) {
-		return;
+	if (color.a >= 0.01) {
+		result = blend(result, color);
 	}
-	
-	result = blend(result, color);
 }
 
 
-void drawFig0() {
-	vec2 scaledTexCoord = (vertexTexCoord - 0.5) * 200.0 + 0.5;
-	result = blend(result, texture(texture0, scaledTexCoord));
-}
-
-void drawFig1() {
-	vec2 scaledTexCoord = (vertexTexCoord - 0.5) * 200.0 + 0.5;
-	result = blend(result, texture(texture1, scaledTexCoord));
+void drawFigure(sampler2D tex, float angleSin, float angleCos) {
+	vec2 scaledTexCoord = rotate(fragTexCoord - 0.5, angleSin, angleCos) * 200.0 + 0.5;
+	result = blend(result, texture(tex, scaledTexCoord));
 }
 
 
 void main() {
 	result = vec4(0.0);
-	float dist = length(centerPos.xz - vertexPos.xz);
+	float dist = length(centerPos.xz - fragPos.xz);
 	
 	if (progress >= EXPLOSION_START && progress <= EXPLOSION_END) {
 		float alpha = min(1.0, zoom(progress, EXPLOSION_START, EXPLOSION_END, 5.0, 0.0));
@@ -122,9 +104,13 @@ void main() {
 	
 	
 	if (progress >= FIG0_START && progress <= FIG0_END) {
-		drawFig0();
+		drawFigure(texture0, 0.0, 1.0);
+		
 	} else if (progress >= FIG1_START && progress <= FIG1_END) {
-		drawFig1();
+		drawFigure(texture1, 0.0, 1.0);
+		
+	} else if (progress >= FIG2_START && progress <= FIG2_END) {
+		drawFigure(texture2, FIG2_ANGLE_SIN, FIG2_ANGLE_COS);
 	}
 	
 	

@@ -19,6 +19,7 @@ namespace hack_game {
 	using std::ofstream;
 	using std::shared_ptr;
 
+	using glm::vec2;
 	using glm::vec3;
 
 	static constexpr vec3 BACKGROUND = colorAsVec3(0x636155);
@@ -30,6 +31,7 @@ namespace hack_game {
 
 	static FramebufferInfo staticFbInfo;
 	static shared_ptr<Player> staticPlayer = nullptr;
+	static Shader* staticPostprocessingShader = nullptr;
 
 	static bool paused = false;
 	static bool nextFrame = false;
@@ -43,6 +45,9 @@ namespace hack_game {
 	void framebufferSizeCallback(GLFWwindow*, int width, int height) {
 		windowWidth = width;
 		windowHeight = height;
+
+		staticPostprocessingShader->setPixelSize(vec2(1.0f / width, 1.0f / height));
+
 		changeFramebufferSize(staticFbInfo);
 	}
 
@@ -129,8 +134,10 @@ namespace hack_game {
 
 		staticFbInfo = fbInfo;
 		staticPlayer = tickContext.player;
+		staticPostprocessingShader = &postprocessingShader;
 		
 		postprocessingShader.setProgress(0.0f);
+		postprocessingShader.setPixelSize(vec2(1.0f / windowWidth, 1.0f / windowHeight));
 		float endGameTime = 0;
 
 		for (float lastFrame = 0; !glfwWindowShouldClose(window);) {
@@ -170,7 +177,7 @@ namespace hack_game {
 			glDisable(GL_CULL_FACE);
 			glDisable(GL_MULTISAMPLE);
 
-			glUseProgram(postprocessingShader.id);
+			glUseProgram(postprocessingShader.getId());
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, fbInfo.texture);
 			if (gameEnded()) {

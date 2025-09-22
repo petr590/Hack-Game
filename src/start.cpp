@@ -18,6 +18,9 @@ namespace hack_game {
 	}
 }
 
+
+#define ANIMATION_SHADER(name, vertexShader, fragmentShader) { name, Shader(name, createAnimationShaderProgram(vertexShader, fragmentShader)) }
+
 int main(int argc, const char* argv[]) {
 	using namespace hack_game;
 	using std::map;
@@ -33,26 +36,27 @@ int main(int argc, const char* argv[]) {
 		
 
 		DrawContext drawContext {
-			.nullShader               = Shader(),
-			.mainShader               = Shader(createShaderProgram("main.vert",  "main.frag")),
-			.lightShader              = Shader(createShaderProgram("light.vert", "light.frag")),
+			.nullShader               = Shader("null"),
+			.mainShader               = Shader("main",  createShaderProgram("main.vert",  "main.frag")),
+			.lightShader              = Shader("light", createShaderProgram("light.vert", "light.frag")),
 			.shaders = {
-				{ "enemyDamage",        Shader(createAnimationShaderProgram("animation.vert", "enemy-damage.frag"))         },
-				{ "enemyDestroyCircle", Shader(createAnimationShaderProgram("textured-animation.vert", "enemy-destroy-circle.frag")) },
-				{ "enemyDestroySquare", Shader(createAnimationShaderProgram("animation.vert", "enemy-destroy-square.frag")) },
-				{ "enemyDestroyCube",   Shader(createAnimationShaderProgram("animation.vert", "enemy-destroy-cube.frag"))   },
-				{ "minionDestroy",      Shader(createAnimationShaderProgram("animation.vert", "minion-destroy.frag"))       },
+				ANIMATION_SHADER("enemyDamage",           "animation.vert",          "enemy-damage.frag"),
+				ANIMATION_SHADER("enemyDestroyBillboard", "textured-animation.vert", "enemy-destroy-billboard.frag"),
+				ANIMATION_SHADER("enemyDestroyFlat",      "animation.vert",          "enemy-destroy-flat.frag"),
+				ANIMATION_SHADER("enemyDestroyParticle",  "animation.vert",          "enemy-destroy-particle.frag"),
+				ANIMATION_SHADER("minionDestroy",         "animation.vert",          "minion-destroy.frag"),
+				ANIMATION_SHADER("playerDamage",          "animation.vert",          "player-damage.frag"),
 			}
 		};
 
 		map<GLuint, Shader*> shaderById {
-			{ -1,                         &drawContext.nullShader  },
-			{ drawContext.mainShader.id,  &drawContext.mainShader  },
-			{ drawContext.lightShader.id, &drawContext.lightShader },
+			{ -1,                              &drawContext.nullShader  },
+			{ drawContext.mainShader.getId(),  &drawContext.mainShader  },
+			{ drawContext.lightShader.getId(), &drawContext.lightShader },
 		};
 
 		for (auto& entry : drawContext.shaders) {
-			shaderById[entry.second.id] = &entry.second;
+			shaderById[entry.second.getId()] = &entry.second;
 		}
 
 
@@ -63,7 +67,9 @@ int main(int argc, const char* argv[]) {
 
 		glUseProgram(postprocessingShaderId);
 		glUniform1i(glGetUniformLocation(postprocessingShaderId, "screenTexture"), 0);
-		Shader postprocessingShader(postprocessingShaderId);
+		Shader postprocessingShader("postprocessing", postprocessingShaderId);
+
+		onShadersLoaded();
 
 
 		TickContext tickContext	= createTickContext(drawContext);

@@ -1,11 +1,7 @@
-#version 330 core
-
 #define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
 
 uniform float progress;
 uniform uint mode;
-
-in vec3 vertexPos;
 
 out vec4 result;
 

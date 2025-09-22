@@ -4,15 +4,22 @@
 #include "context/draw_context.h"
 #include "context/tick_context.h"
 #include "globals.h"
+#include "util.h"
 
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace hack_game {
+	using std::vector;
+
 	using glm::vec3;
 	using glm::mat4;
 
+	using Cube = EnemyDestroyAnimation::Cube;
+
+
+	// -------------------------------------- util functions --------------------------------------
 
 	static GLint randomInt() {
 		return  ((rand() >> 3) << 24) |
@@ -38,21 +45,9 @@ namespace hack_game {
 			randomBetween(low.z, high.z)
 		);
 	}
-
-	static constexpr float zoom(float value, float srcStart, float srcEnd, float dstStart, float dstEnd) {
-		return dstStart + (value - srcStart) * (dstEnd - dstStart) / (srcEnd - srcStart);
-	}
-
-	static constexpr float zoom(float value, float dstStart, float dstEnd) {
-		return dstStart + value * (dstEnd - dstStart);
-	}
-
-	static_assert(zoom(1, 0, 2, 6, 8) == 7);
-	static_assert(zoom(150, 100, 200, 0, 1) == 0.5f);
-	static_assert(zoom(0.5f, -100, 100) == 0);
-	static_assert(zoom(0, 100, -100) == 100);
 	
 
+	// ---------------------------------------- constants -----------------------------------------
 
 	static const float SIZE = 10;
 	static const float DURATION = 1;
@@ -64,42 +59,56 @@ namespace hack_game {
 	static const float MAX_SPAWN_SIZE = 10 * TILE_SIZE;
 
 
-	EnemyDestroyAnimation::EnemyDestroyAnimation(DrawContext& drawContext) noexcept:
-			Animation(drawContext.nullShader, models::texturedPlane, SIZE, DURATION),
-			circleShader (drawContext.shaders["enemyDestroyCircle"]),
-			squareShader (drawContext.shaders["enemyDestroySquare"]),
-			cubeShader   (drawContext.shaders["enemyDestroyCube"]),
+	// ------------------------------------------- Cube -------------------------------------------
+
+	static mat4 cubeModelTransform(const vec3& pos, float angle, const vec3& axis) {
+		mat4 modelMat(1.0f);
+		modelMat = glm::translate(modelMat, pos);
+		return     glm::rotate(modelMat, angle, axis);
+	}
+
+
+	class EnemyDestroyAnimation::Cube {
+	public:
+		mat4 modelMat;
+		float maxLifetime;
+		float lifetime = 0;
+		float scale;
+
+		Cube(const vec3& pos, float angle, const vec3& axis, float maxLifetime, float scale):
+			modelMat(cubeModelTransform(pos, angle, axis)),
+			maxLifetime(maxLifetime),
+			scale(scale) {}
+		
+		Cube(Cube&&) = default;
+		Cube& operator=(Cube&&) = default;
+	};
+
+
+	// ---------------------------------- EnemyDestroyAnimation -----------------------------------
+
+	EnemyDestroyAnimation::EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&& entity, DrawContext& drawContext) noexcept:
+			BillboardAnimation(std::move(entity), drawContext.nullShader, models::texturedPlane, SIZE, DURATION),
+			billboardShader (drawContext.shaders.at("enemyDestroyBillboard")),
+			flatShader      (drawContext.shaders.at("enemyDestroyFlat")),
+			particleShader  (drawContext.shaders.at("enemyDestroyParticle")),
 			seed(randomInt()),
 			view(1.0f) {
 		
 		destroyAnimationCount += 1;
 	}
-	
 
-	void EnemyDestroyAnimation::tick(TickContext& context) {
-		Animation::tick(context);
-		view = context.player->getCamera().getView();
+	EnemyDestroyAnimation::~EnemyDestroyAnimation() noexcept {}
 
-		if (time >= CUBES_START && time <= CUBES_END) {
-
-			const int newCubes = static_cast<int>(randomBetween(1, 20) * randomBetween(1, 20) * context.deltaTime);
-
-			for (int i = 0; i < newCubes; i++) {
-				addCube();
-			}
-		}
-		
-		updateCubes(fadingCubes, context.deltaTime);
-		updateCubes(solidCubes, context.deltaTime);
-		updateCubes(frameCubes, context.deltaTime);
-	}
 
 	void EnemyDestroyAnimation::onRemove() {
 		destroyAnimationCount -= 1;
 	}
 
 
-	void EnemyDestroyAnimation::updateCubes(std::vector<Cube>& cubes, float deltaTime) {
+	// ------------------------------------------- tick -------------------------------------------
+
+	static void updateCubes(vector<Cube>& cubes, float deltaTime) {
 		if (cubes.empty()) return;
 
 		for (Cube& cube : cubes) {
@@ -110,7 +119,7 @@ namespace hack_game {
 	}
 
 
-	void EnemyDestroyAnimation::addCube() {
+	static void addCube(float time, const vec3& pos, vector<Cube>& fadingCubes, vector<Cube>& solidCubes, vector<Cube>& frameCubes) {
 		const float spawnSize = zoom(time, CUBES_START, CUBES_END, MIN_SPAWN_SIZE, MAX_SPAWN_SIZE);
 
 		const vec3 cubePos = randomBetween(
@@ -126,7 +135,7 @@ namespace hack_game {
 		const float scale = randomBetween(minScale, maxScale);
 
 		float lifetime;
-		std::vector<Cube>* cubes;
+		vector<Cube>* cubes;
 
 		switch ((rand() >> 8) & 0x7) {
 			case 0: case 1: case 2: case 3: case 4:
@@ -144,78 +153,83 @@ namespace hack_game {
 				cubes = &frameCubes;
 				break;
 			
-			default: return;
+			default:
+				return;
 		}
 
 		cubes->emplace_back(cubePos, angle, axis, lifetime, scale);
 	}
+	
 
+	void EnemyDestroyAnimation::tick(TickContext& context) {
+		BillboardAnimation::tick(context);
+		view = context.player->getCamera().getView();
+
+		if (time >= CUBES_START && time <= CUBES_END) {
+
+			const int newCubes = static_cast<int>(randomBetween(1, 20) * randomBetween(1, 20) * context.deltaTime);
+
+			for (int i = 0; i < newCubes; i++) {
+				addCube(time, pos, fadingCubes, solidCubes, frameCubes);
+			}
+		}
+		
+		updateCubes(fadingCubes, context.deltaTime);
+		updateCubes(solidCubes, context.deltaTime);
+		updateCubes(frameCubes, context.deltaTime);
+	}
+
+
+	// ------------------------------------------- draw -------------------------------------------
 
 	enum Mode: GLuint {
 		MODE_FADING = 0,
 		MODE_SOLID  = 1,
 	};
 
-	static mat4 getModelTransformWithoutRotation(const vec3& pos, float size) {
-		mat4 modelMat(1.0f);
-		modelMat = glm::translate(modelMat, pos);
-		return     glm::scale(modelMat, vec3(size));
-	}
 
-	
-	void EnemyDestroyAnimation::draw() const {
-		const float progress = time / duration;
-
-		glUseProgram(squareShader.id);
-		squareShader.setView(view);
-		squareShader.setModel(getModelTransformWithoutRotation(pos, size));
-		squareShader.setCenterPos(pos);
-		squareShader.setProgress(progress);
-		squareShader.setSeed(seed);
-		model.draw(squareShader);
-		
-
-		glUseProgram(circleShader.id);
-		circleShader.setView(view);
-		circleShader.setModel(getModelTransform());
-		circleShader.setCenterPos(pos);
-		circleShader.setProgress(progress);
-		model.draw(circleShader);
-
-
-		if (time >= CUBES_START && (!fadingCubes.empty() || !solidCubes.empty() || !frameCubes.empty())) {
-			glUseProgram(cubeShader.id);
-			cubeShader.setView(view);
-
-			drawCubes(fadingCubes, MODE_FADING, models::blackCube, 1.0f);
-			drawCubes(solidCubes,  MODE_SOLID,  models::blackCube, 0.9f);
-			drawCubes(frameCubes,  MODE_SOLID,  models::cubeFrame, 0.8f);
-		}
-	}
-
-	void EnemyDestroyAnimation::drawCubes(const std::vector<Cube>& cubes, GLuint mode, Model& model, float minScale) const {
-		cubeShader.setMode(mode);
+	static void drawCubes(Shader& particleShader, const vector<Cube>& cubes, GLuint mode, Model& model, float minScale) {
+		particleShader.setMode(mode);
 			
 		for (const Cube& cube : cubes) {
 			float progress = cube.lifetime / cube.maxLifetime;
-			mat4 modelMat = glm::scale(cube.modelMat, vec3(cube.scale * zoom(progress, 1.0f, minScale)));
+			mat4 modelMat = glm::scale(cube.modelMat, vec3(cube.scale * std::lerp(1.0f, minScale, progress)));
 			
-			cubeShader.setModel(modelMat);
-			cubeShader.setProgress(progress);
+			particleShader.setModel(modelMat);
+			particleShader.setProgress(progress);
 
-			model.draw(cubeShader);
+			model.draw(particleShader);
 		}
 	}
+	
+
+	void EnemyDestroyAnimation::draw() const {
+		const float progress = time / duration;
+
+		glUseProgram(flatShader.getId());
+		flatShader.setView(view);
+		flatShader.setModel(Animation::getModelTransform());
+		flatShader.setCenterPos(pos);
+		flatShader.setProgress(progress);
+		flatShader.setSeed(seed);
+		model.draw(flatShader);
+		
+
+		glUseProgram(billboardShader.getId());
+		billboardShader.setView(view);
+		billboardShader.setModel(getModelTransform());
+		billboardShader.setCenterPos(pos);
+		billboardShader.setProgress(progress);
+		model.draw(billboardShader);
 
 
-	static mat4 cubeModelTransform(const glm::vec3& pos, float angle, const glm::vec3& axis) {
-		mat4 modelMat(1.0f);
-		modelMat = glm::translate(modelMat, pos);
-		return     glm::rotate(modelMat, angle, axis);
+		if (time >= CUBES_START && (!fadingCubes.empty() || !solidCubes.empty() || !frameCubes.empty())) {
+			glUseProgram(particleShader.getId());
+			particleShader.setView(view);
+
+			drawCubes(particleShader, fadingCubes, MODE_FADING, models::blackCube, 1.0f);
+			drawCubes(particleShader, solidCubes,  MODE_SOLID,  models::blackCube, 0.9f);
+			drawCubes(particleShader, frameCubes,  MODE_SOLID,  models::cubeFrame, 0.8f);
+		}
 	}
-
-	EnemyDestroyAnimation::Cube::Cube(const glm::vec3& pos, float angle, const glm::vec3& axis, float maxLifetime, float scale):
-			modelMat(cubeModelTransform(pos, angle, axis)),
-			maxLifetime(maxLifetime),
-			scale(scale) {}
 }

@@ -16,6 +16,25 @@ namespace hack_game {
 	constexpr float EPSILON = 1e-6f;
 
 
+	/**
+	 * Переводит значение value из диапазона [srcStart; srcEnd] в диапазон [dstStart; dstEnd].
+	 * Работает со значениями за пределами исходного диапазона
+	 * @return Масштабированное значение в диапазоне [dstStart; dstEnd], если исходное в диапазоне [srcStart; srcEnd]
+	 */
+	static constexpr float zoom(float value, float srcStart, float srcEnd, float dstStart, float dstEnd) {
+		return dstStart + (value - srcStart) * (dstEnd - dstStart) / (srcEnd - srcStart);
+	}
+
+	/**
+	 * Переводит значение value из диапазона [srcStart; srcEnd] в диапазон [0.0f; 1.0f].
+	 * Работает со значениями за пределами исходного диапазона
+	 * @return Масштабированное значение в диапазоне [0.0f; 1.0f], если исходное в диапазоне [srcStart; srcEnd]
+	 */
+	static constexpr float invLerp(float a, float b, float t) {
+		return (t - a) / (b - a);
+	}
+
+
 	constexpr glm::vec3 colorAsVec3(uint32_t color) {
 		return glm::vec3(
 			((color >> 16) & 0xFF) * (1.f / 255.f),
