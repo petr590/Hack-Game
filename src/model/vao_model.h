@@ -7,8 +7,8 @@ namespace hack_game {
 
 	class VAOModel: public Model {
 	protected:
-		GLuint vertexArray = 0;
 		std::vector<GLuint> indices;
+		GLuint vertexArray = 0;
 	
 	public:
 		VAOModel() noexcept;

@@ -61,7 +61,7 @@ namespace hack_game {
 
 	void Block::tick(TickContext& context) {
 		if (damageAnimationTime > 0) {
-			damageAnimationTime -= context.deltaTime;
+			damageAnimationTime -= context.getDeltaTime();
 
 			if (damageAnimationTime <= 0 && destroyed()) {
 				context.removeEntity(shared_from_this());

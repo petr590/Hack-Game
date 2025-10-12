@@ -52,7 +52,6 @@ namespace hack_game {
 	};
 
 	struct TickContext {
-		float deltaTime = 0;
 		Map map;
 		const std::shared_ptr<Player> player;
 		const std::shared_ptr<Enemy> enemy;
@@ -69,10 +68,20 @@ namespace hack_game {
 
 		std::vector<std::shared_ptr<Damageable>> damageableEnemyEntities;
 
+		float deltaTime = 0;
+
 		EntityVector& getVector(const std::shared_ptr<Entity>&) noexcept;
 
 	public:
 		TickContext(Map&& map, const std::shared_ptr<Player>& player, const std::shared_ptr<Enemy>& enemy) noexcept;
+
+		float getDeltaTime() const noexcept {
+			return deltaTime;
+		}
+
+		void setDeltaTime(float deltaTime) noexcept {
+			this->deltaTime = deltaTime;
+		}
 
 		glm::uvec2 getMapPos(const glm::vec2& pos) const noexcept;
 

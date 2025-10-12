@@ -1,7 +1,8 @@
-#ifndef HACK_GAME__ENTITY_ANIMATION__ANIMATION_H
-#define HACK_GAME__ENTITY_ANIMATION__ANIMATION_H
+#ifndef HACK_GAME__ENTITY__ANIMATION__ANIMATION_H
+#define HACK_GAME__ENTITY__ANIMATION__ANIMATION_H
 
 #include "entity/simple_entity.h"
+#include "model/models.h"
 #include <memory>
 
 namespace hack_game {
@@ -13,12 +14,11 @@ namespace hack_game {
 		const std::shared_ptr<const EntityWithPos> entity;
 		const float size;
 		const float duration;
+		const float yOffset;
 		float time = 0;
-		glm::vec3 pos;
 
 	public:
-		Animation(std::shared_ptr<const EntityWithPos>&&, Shader&, Model&, float size, float duration) noexcept;
-		Animation(std::shared_ptr<const EntityWithPos>&&, Shader&, float size, float duration) noexcept;
+		Animation(std::shared_ptr<const EntityWithPos>&&, Shader&, float duration, float size, float yOffset, Model& = models::plane) noexcept;
 
 		float getTime() const noexcept {
 			return time;
@@ -37,7 +37,8 @@ namespace hack_game {
 		glm::mat4 getModelTransform() const override;
 	
 	protected:
-		virtual void onRemove() {}
+		virtual void onRemove(TickContext&) {}
+		glm::vec3 getPos() const noexcept;
 	};
 }
 

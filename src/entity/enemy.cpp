@@ -27,7 +27,7 @@ namespace hack_game {
 	static const float BRIGHT_DURATION = 0.04f;
 
 
-	Enemy::Enemy(DrawContext& drawContext, float bulletSpawnPeriod, const glm::vec3& pos) noexcept:
+	Enemy::Enemy(DrawContext& drawContext, float bulletSpawnPeriod, const vec3& pos) noexcept:
 			SimpleEntity(drawContext.mainShader, models::sphere),
 			Damageable(Side::ENEMY, 7),
 			drawContext(drawContext),
@@ -63,12 +63,12 @@ namespace hack_game {
 	}
 
 	void Enemy::tick(TickContext& context) {
-		time += context.deltaTime;
+		time += context.getDeltaTime();
 
 		if (time >= bulletSpawnPeriod) {
 			time -= bulletSpawnPeriod;
 
-			spawnBullets(context);
+			// spawnBullets(context); // DEBUG
 		}
 	}
 
@@ -76,14 +76,14 @@ namespace hack_game {
 		bool bright = animation != nullptr && animation->getTime() <= BRIGHT_DURATION;
 
 		if (bright) {
-			shader.setModelBrightness(1.5f);
+			shader.setUniform("modelBrightness", 1.5f);
 		}
 		
 		shader.setModel(getModelTransform());
 		coloredModel.draw(shader);
 
 		if (bright) {
-			shader.setModelBrightness(1.0f);
+			shader.setUniform("modelBrightness", 1.0f);
 		}
 	}
 
@@ -94,7 +94,7 @@ namespace hack_game {
 
 	static const float ROTATE_PER_SEC = glm::radians(45.0f);
 
-	Enemy1::Enemy1(DrawContext& drawContext, const glm::vec3& pos) noexcept:
+	Enemy1::Enemy1(DrawContext& drawContext, const vec3& pos) noexcept:
 			Enemy(drawContext, 0.5f, pos) {}
 	
 	
@@ -116,7 +116,7 @@ namespace hack_game {
 			vec2 velocity = glm::rotate(velocity0, angle + glm::radians(-90.0f + i * 45));
 
 			context.addEntity(make_shared<EnemyBullet>(
-				drawContext.lightShader, spawnUnbreakable, vec3(velocity.x, 0.0f, velocity.y), pos
+				drawContext.getShader("light"), spawnUnbreakable, vec3(velocity.x, 0.0f, velocity.y), pos
 			));
 		}
 

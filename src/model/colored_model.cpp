@@ -21,6 +21,15 @@ namespace hack_game {
 	using glm::vec3;
 
 
+	struct ColoredModel::Vertex {
+		const glm::vec3 pos;
+		const glm::vec3 normal;
+
+		constexpr Vertex(const glm::vec3 pos, const glm::vec3 normal) noexcept:
+			pos(pos), normal(normal) {}
+	};
+
+
 	ColoredModel::ColoredModel(uint32_t color, const char* relativePath): color(colorAsVec3(color)) {
 		const string path = string(MODELS_DIR) + relativePath;
 		ifstream file(path);
@@ -85,8 +94,10 @@ namespace hack_game {
 
 	ColoredModel::ColoredModel(uint32_t color, const ColoredModel& model):
 		VAOModel(model),
-		color(colorAsVec3(color)),
-		vertices(model.vertices) {}
+		vertices(model.vertices),
+		color(colorAsVec3(color)) {}
+	
+	ColoredModel::~ColoredModel() noexcept {}
 
 
 	GLuint ColoredModel::createVertexArray() {

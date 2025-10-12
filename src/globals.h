@@ -8,6 +8,10 @@ namespace hack_game {
 	/// Количество анимаций уничтожения Player и Enemy.
 	/// Пока оно больше 0, экран конца игрыне показывается
 	extern int destroyAnimationCount;
+
+	inline bool gameEnded() {
+		return (playerDestroyed || enemyDestroyed) && destroyAnimationCount == 0;
+	}
 }
 
 #endif

@@ -37,7 +37,7 @@ namespace hack_game {
 			pos(pos) {}
 
 	void Bullet::tick(TickContext& context) {
-		pos += velocity * context.deltaTime;
+		pos += velocity * context.getDeltaTime();
 
 		if (checkCollision(context)) {
 			context.removeEntity(shared_from_this());

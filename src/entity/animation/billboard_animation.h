@@ -1,16 +1,19 @@
-#ifndef HACK_GAME__ENTITY_ANIMATION__BILLBOARD_ANIMATION_H
-#define HACK_GAME__ENTITY_ANIMATION__BILLBOARD_ANIMATION_H
+#ifndef HACK_GAME__ENTITY__ANIMATION__BILLBOARD_ANIMATION_H
+#define HACK_GAME__ENTITY__ANIMATION__BILLBOARD_ANIMATION_H
 
 #include "animation.h"
 
 namespace hack_game {
 
 	class BillboardAnimation: public Animation {
-		glm::mat3 viewMat3;
+		glm::mat4 view;
 		
 	public:
-		BillboardAnimation(std::shared_ptr<const EntityWithPos>&&, Shader&, Model&, float size, float duration) noexcept;
-		BillboardAnimation(std::shared_ptr<const EntityWithPos>&&, Shader&, float size, float duration) noexcept;
+		using Animation::Animation;
+
+		const glm::mat4& getView() const noexcept {
+			return view;
+		}
 		
 		void tick(TickContext&) override;
 		glm::mat4 getModelTransform() const override;

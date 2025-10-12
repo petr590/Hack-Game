@@ -63,6 +63,21 @@ namespace hack_game {
 	 * @return Новое смещение
 	 */
 	glm::vec2 resolveBlockCollision(const TickContext& context, const glm::vec2& pos, glm::vec2 offset);
+
+
+	/**
+	 * Генерирует рандомное значение в диапазоне от low до high.
+	 * Обязательные условия: low <= high, low >= 0, high <= RAND_MAX.
+	 * При невыполнении условий ошибка в Debug Mode и UB в Release
+	 * @return Рандомное значение
+	 */
+	int randomBetween(int low, int high);
+
+	float randomBetween(float low, float high);
+	
+	glm::vec3 randomBetween(const glm::vec3& low, const glm::vec3& high);
+
+	int32_t randomInt32();
 }
 
 #endif

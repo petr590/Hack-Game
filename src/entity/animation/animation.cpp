@@ -2,7 +2,6 @@
 #include "entity/enemy.h"
 #include "entity/player.h"
 #include "entity/entity_with_pos.h"
-#include "model/models.h"
 #include "context/shader.h"
 #include "context/tick_context.h"
 #include <glm/gtc/matrix_transform.hpp>
@@ -16,36 +15,36 @@ namespace hack_game {
 	using glm::mat3;
 	using glm::mat4;
 
-	Animation::Animation(shared_ptr<const EntityWithPos>&& entity, Shader& shader, Model& model, float size, float duration) noexcept:
-			SimpleEntity(shader, model), entity(move(entity)), size(size), duration(duration) {}
-
-	Animation::Animation(shared_ptr<const EntityWithPos>&& entity, Shader& shader, float size, float duration) noexcept:
-			Animation(move(entity), shader, models::plane, size, duration) {}
+	Animation::Animation(shared_ptr<const EntityWithPos>&& entity, Shader& shader, float duration, float size, float yOffset, Model& model) noexcept:
+			SimpleEntity(shader, model), entity(move(entity)), size(size), duration(duration), yOffset(yOffset) {}
 	
 
 	void Animation::tick(TickContext& context) {
-		pos = entity->getPos();
-		pos.y += Enemy::RADIUS; // TODO?
-
-		time += context.deltaTime;
+		time += context.getDeltaTime();
 
 		if (time >= duration) {
 			context.removeEntity(shared_from_this());
-			onRemove();
+			onRemove(context);
 		}
 	}
 
 
 	void Animation::draw() const {
-		shader.setCenterPos(pos);
-		shader.setProgress(time / duration);
+		shader.setUniform("centerPos", getPos());
+		shader.setUniform("progress", time / duration);
 		SimpleEntity::draw();
 	}
 
 
 	mat4 Animation::getModelTransform() const {
 		mat4 modelMat(1.0f);
-		modelMat = glm::translate(modelMat, pos);
+		modelMat = glm::translate(modelMat, getPos());
 		return glm::scale(modelMat, vec3(size));
+	}
+
+	vec3 Animation::getPos() const noexcept {
+		vec3 pos = entity->getPos();
+		pos.y += yOffset;
+		return pos;
 	}
 }

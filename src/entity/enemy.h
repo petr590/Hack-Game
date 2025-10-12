@@ -19,11 +19,11 @@ namespace hack_game {
 	protected:
 		DrawContext& drawContext;
 		const ColoredModel& coloredModel;
-		const float bulletSpawnPeriod;
+		std::shared_ptr<Animation> animation = nullptr;
 
+		const float bulletSpawnPeriod;
 		glm::vec3 pos;
 		float time = 0;
-		std::shared_ptr<Animation> animation = nullptr;
 
 	public:
 		Enemy(DrawContext&, float bulletSpawnPeriod, const glm::vec3& pos) noexcept;

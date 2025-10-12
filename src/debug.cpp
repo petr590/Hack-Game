@@ -1,6 +1,7 @@
 #include "debug.h"
 
 #include <cstdio>
+
 #define GLEW_STATIC
 #include <GL/glew.h>
 

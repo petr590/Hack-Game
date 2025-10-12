@@ -1,17 +1,16 @@
 #include "enemy_destroy.h"
 #include "entity/player.h"
-#include "model/models.h"
+#include "entity/enemy.h"
 #include "context/draw_context.h"
 #include "context/tick_context.h"
+#include "cube_particle_mode.h"
 #include "globals.h"
 #include "util.h"
-
-#define GLEW_STATIC
-#include <GL/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace hack_game {
 	using std::vector;
+	using std::exp;
 
 	using glm::vec3;
 	using glm::mat4;
@@ -19,38 +18,10 @@ namespace hack_game {
 	using Cube = EnemyDestroyAnimation::Cube;
 
 
-	// -------------------------------------- util functions --------------------------------------
-
-	static GLint randomInt() {
-		return  ((rand() >> 3) << 24) |
-				((rand() >> 3) << 12) |
-				(rand() >> 3);
-	}
-
-
-	static int randomBetween(int low, int high) {
-		assert(low <= high);
-		assert(high <= RAND_MAX);
-		return low + rand() % (high - low + 1);
-	}
-
-	static float randomBetween(float low, float high) {
-		return low + float(rand()) * (high - low) * (1.0f / RAND_MAX);
-	}
-
-	static vec3 randomBetween(const vec3& low, const vec3& high) {
-		return vec3(
-			randomBetween(low.x, high.x),
-			randomBetween(low.y, high.y),
-			randomBetween(low.z, high.z)
-		);
-	}
-	
-
 	// ---------------------------------------- constants -----------------------------------------
 
-	static const float SIZE = 10;
 	static const float DURATION = 1;
+	static const float SIZE = 10;
 
 	static const float CUBES_START = 0.1f * DURATION;
 	static const float CUBES_END   = 0.7f * DURATION;
@@ -71,14 +42,14 @@ namespace hack_game {
 	class EnemyDestroyAnimation::Cube {
 	public:
 		mat4 modelMat;
+		float scale;
 		float maxLifetime;
 		float lifetime = 0;
-		float scale;
 
-		Cube(const vec3& pos, float angle, const vec3& axis, float maxLifetime, float scale):
+		Cube(const vec3& pos, float angle, const vec3& axis, float scale, float maxLifetime):
 			modelMat(cubeModelTransform(pos, angle, axis)),
-			maxLifetime(maxLifetime),
-			scale(scale) {}
+			scale(scale),
+			maxLifetime(maxLifetime) {}
 		
 		Cube(Cube&&) = default;
 		Cube& operator=(Cube&&) = default;
@@ -88,12 +59,11 @@ namespace hack_game {
 	// ---------------------------------- EnemyDestroyAnimation -----------------------------------
 
 	EnemyDestroyAnimation::EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&& entity, DrawContext& drawContext) noexcept:
-			BillboardAnimation(std::move(entity), drawContext.nullShader, models::texturedPlane, SIZE, DURATION),
-			billboardShader (drawContext.shaders.at("enemyDestroyBillboard")),
-			flatShader      (drawContext.shaders.at("enemyDestroyFlat")),
-			particleShader  (drawContext.shaders.at("enemyDestroyParticle")),
-			seed(randomInt()),
-			view(1.0f) {
+			BillboardAnimation(std::move(entity), drawContext.nullShader, DURATION, SIZE, Enemy::RADIUS, models::texturedPlane),
+			billboardShader (drawContext.getShader("enemyDestroyBillboard")),
+			flatShader      (drawContext.getShader("enemyDestroyFlat")),
+			particleShader  (drawContext.getShader("particleCube")),
+			seed            (randomInt32()) {
 		
 		destroyAnimationCount += 1;
 	}
@@ -101,7 +71,7 @@ namespace hack_game {
 	EnemyDestroyAnimation::~EnemyDestroyAnimation() noexcept {}
 
 
-	void EnemyDestroyAnimation::onRemove() {
+	void EnemyDestroyAnimation::onRemove(TickContext&) {
 		destroyAnimationCount -= 1;
 	}
 
@@ -157,46 +127,40 @@ namespace hack_game {
 				return;
 		}
 
-		cubes->emplace_back(cubePos, angle, axis, lifetime, scale);
+		cubes->emplace_back(cubePos, angle, axis, scale, lifetime);
 	}
 	
 
 	void EnemyDestroyAnimation::tick(TickContext& context) {
 		BillboardAnimation::tick(context);
-		view = context.player->getCamera().getView();
 
 		if (time >= CUBES_START && time <= CUBES_END) {
 
-			const int newCubes = static_cast<int>(randomBetween(1, 20) * randomBetween(1, 20) * context.deltaTime);
+			const int newCubes = static_cast<int>(randomBetween(1, 20) * randomBetween(1, 20) * context.getDeltaTime());
 
 			for (int i = 0; i < newCubes; i++) {
-				addCube(time, pos, fadingCubes, solidCubes, frameCubes);
+				addCube(time, getPos(), fadingCubes, solidCubes, frameCubes);
 			}
 		}
 		
-		updateCubes(fadingCubes, context.deltaTime);
-		updateCubes(solidCubes, context.deltaTime);
-		updateCubes(frameCubes, context.deltaTime);
+		updateCubes(fadingCubes, context.getDeltaTime());
+		updateCubes(solidCubes, context.getDeltaTime());
+		updateCubes(frameCubes, context.getDeltaTime());
 	}
 
 
 	// ------------------------------------------- draw -------------------------------------------
 
-	enum Mode: GLuint {
-		MODE_FADING = 0,
-		MODE_SOLID  = 1,
-	};
 
-
-	static void drawCubes(Shader& particleShader, const vector<Cube>& cubes, GLuint mode, Model& model, float minScale) {
-		particleShader.setMode(mode);
+	static void drawCubes(Shader& particleShader, const vector<Cube>& cubes, Mode mode, Model& model, float minScale) {
+		particleShader.setUniform("mode", static_cast<GLuint>(mode));
 			
 		for (const Cube& cube : cubes) {
 			float progress = cube.lifetime / cube.maxLifetime;
 			mat4 modelMat = glm::scale(cube.modelMat, vec3(cube.scale * std::lerp(1.0f, minScale, progress)));
 			
 			particleShader.setModel(modelMat);
-			particleShader.setProgress(progress);
+			particleShader.setUniform("alpha", exp(-6.0f * progress));
 
 			model.draw(particleShader);
 		}
@@ -205,31 +169,32 @@ namespace hack_game {
 
 	void EnemyDestroyAnimation::draw() const {
 		const float progress = time / duration;
+		const vec3 centerPos = getPos();
 
-		glUseProgram(flatShader.getId());
-		flatShader.setView(view);
+		flatShader.use();
+		flatShader.setView(getView());
 		flatShader.setModel(Animation::getModelTransform());
-		flatShader.setCenterPos(pos);
-		flatShader.setProgress(progress);
-		flatShader.setSeed(seed);
+		flatShader.setUniform("centerPos", centerPos);
+		flatShader.setUniform("progress", progress);
+		flatShader.setUniform("seed", seed);
 		model.draw(flatShader);
 		
 
-		glUseProgram(billboardShader.getId());
-		billboardShader.setView(view);
+		billboardShader.use();
+		billboardShader.setView(getView());
 		billboardShader.setModel(getModelTransform());
-		billboardShader.setCenterPos(pos);
-		billboardShader.setProgress(progress);
+		billboardShader.setUniform("centerPos", centerPos);
+		billboardShader.setUniform("progress", progress);
 		model.draw(billboardShader);
 
 
 		if (time >= CUBES_START && (!fadingCubes.empty() || !solidCubes.empty() || !frameCubes.empty())) {
-			glUseProgram(particleShader.getId());
-			particleShader.setView(view);
+			particleShader.use();
+			particleShader.setView(getView());
 
-			drawCubes(particleShader, fadingCubes, MODE_FADING, models::blackCube, 1.0f);
-			drawCubes(particleShader, solidCubes,  MODE_SOLID,  models::blackCube, 0.9f);
-			drawCubes(particleShader, frameCubes,  MODE_SOLID,  models::cubeFrame, 0.8f);
+			drawCubes(particleShader, fadingCubes, Mode::FADING, models::blackCube, 1.0f);
+			drawCubes(particleShader, solidCubes,  Mode::SOLID,  models::blackCube, 0.9f);
+			drawCubes(particleShader, frameCubes,  Mode::SOLID,  models::cubeFrame, 0.8f);
 		}
 	}
 }

@@ -34,7 +34,7 @@ namespace hack_game {
 	}
 
 
-	static glm::vec2 resolveBlockCollision(const TickContext& context, const glm::vec2& pos, glm::vec2 offset, const glm::uvec2& mapPos) {
+	static vec2 resolveBlockCollision(const TickContext& context, const vec2& pos, vec2 offset, const uvec2& mapPos) {
 		if (context.map[mapPos] == nullptr) {
 			return offset;
 		}
@@ -57,7 +57,7 @@ namespace hack_game {
 	}
 
 
-	glm::vec2 resolveBlockCollision(const TickContext& context, const glm::vec2& pos, glm::vec2 offset) {
+	vec2 resolveBlockCollision(const TickContext& context, const vec2& pos, vec2 offset) {
 		const vec2 newPos = pos + offset;
 		const uvec2 minPos = context.getMapPos(glm::min(pos, newPos) - EPSILON);
 		const uvec2 maxPos = context.getMapPos(glm::max(pos, newPos) + EPSILON);
@@ -77,5 +77,31 @@ namespace hack_game {
 		}
 
 		return offset;
+	}
+
+
+	int randomBetween(int low, int high) {
+		assert(low <= high);
+		assert(low >= 0);
+		assert(high <= RAND_MAX);
+		return low + rand() % (high - low + 1);
+	}
+
+	float randomBetween(float low, float high) {
+		return low + float(rand()) * (high - low) * (1.0f / RAND_MAX);
+	}
+
+	vec3 randomBetween(const vec3& low, const vec3& high) {
+		return vec3(
+			randomBetween(low.x, high.x),
+			randomBetween(low.y, high.y),
+			randomBetween(low.z, high.z)
+		);
+	}
+
+	int32_t randomInt32() {
+		return  ((rand() >> 3) << 24) |
+				((rand() >> 3) << 12) |
+				(rand() >> 3);
 	}
 }

@@ -10,8 +10,8 @@ namespace hack_game {
 	VAOModel::VAOModel() noexcept {}
 
 	VAOModel::VAOModel(const VAOModel& model):
-			vertexArray(model.vertexArray),
-			indices(model.indices) {}
+			indices(model.indices),
+			vertexArray(model.vertexArray) {}
 
 	void VAOModel::generateVertexArray() {
 		vertexArray = createVertexArray();

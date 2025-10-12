@@ -11,7 +11,7 @@ namespace hack_game {
 	using hp_t = int32_t;
 
 	/// Сторона, которой принадлежит сущность
-	enum class Side: uint8_t {
+	enum class Side: uint32_t {
 		PLAYER, ENEMY
 	};
 
@@ -37,7 +37,7 @@ namespace hack_game {
 
 		/**
 		 * Проверяет коллизию с точкой
-		 * @param pos позиция точки для проверки
+		 * @param point позиция точки для проверки
 		 * @return true, если есть коллизия с точкой, иначе false
 		 */
 		virtual bool hasCollision(const glm::vec3& point) const = 0;

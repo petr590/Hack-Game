@@ -7,21 +7,15 @@
 namespace hack_game {
 
 	class ColoredModel: public VAOModel {
-		struct Vertex {
-			const glm::vec3 pos;
-			const glm::vec3 normal;
+		struct Vertex;
 
-			constexpr Vertex(const glm::vec3 pos, const glm::vec3 normal) noexcept:
-				pos(pos), normal(normal) {}
-		};
-
-
-		const glm::vec3 color;
 		std::vector<Vertex> vertices;
+		const glm::vec3 color;
 	
 	public:
 		ColoredModel(uint32_t color, const char* relativePath);
 		ColoredModel(uint32_t color, const ColoredModel&);
+		~ColoredModel() noexcept;
 
 		const glm::vec3& getColor() const noexcept {
 			return color;

@@ -1,121 +1,155 @@
 #include "shader.h"
+#include <iostream>
 #include <stdexcept>
+#include <functional>
+#include <algorithm>
 #include <GL/glew.h>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
-	using TextureArray = Shader::TextureArray;
+	using std::cerr;
+	using std::endl;
+	using std::string_view;
+	using std::function;
+
+	using glm::vec2;
+	using glm::vec3;
+	using glm::mat4;
+
+	using Uniform = Shader::Uniform;
+	using uniforms_t = Shader::uniforms_t;
+
+	struct Shader::Uniform {
+		Uniform() noexcept {}
+
+		#ifndef NDEBUG
+		GLint id;
+		GLenum type;
+		constexpr Uniform(GLint id, GLenum type) noexcept: id(id), type(type) {}
+		#else
+		GLint id;
+		constexpr Uniform(GLint id, GLenum) noexcept: id(id) {}
+		#endif
+	};
 
 
-	static constexpr TextureArray defaultTexureArray() {
-		TextureArray arr {};
+	static uniforms_t createUniforms(GLuint id) {
+		GLint count;
+		glGetProgramiv(id, GL_ACTIVE_UNIFORMS, &count);
 
-		for (size_t i = 0; i < arr.size(); i++) {
-			arr[i] = -1;
+		uniforms_t uniforms;
+		uniforms.reserve(count);
+
+		for (GLint i = 0; i < count; i++) {
+			const GLsizei maxNameLen = 16;
+			GLchar name[maxNameLen];
+			GLsizei nameLen;
+			GLint size;
+			GLenum type;
+			
+			glGetActiveUniform(id, static_cast<GLuint>(i), maxNameLen, &nameLen, &size, &type, name);
+			uniforms.emplace_back(string_view(strdup(name)), Uniform(i, type));
 		}
 
-		return arr;
+		assert(uniforms.size() == static_cast<size_t>(count));
+		return uniforms;
 	}
 
-	static TextureArray createTexureArray(GLuint id) {
-		TextureArray arr {};
-		
-		static_assert(arr.size() < 10);
-		char buffer[] = "texture0";
-
-		for (size_t i = 0; i < arr.size(); i++) {
-			buffer[sizeof(buffer) - 2] = '0' + i;
-			arr[i] = glGetUniformLocation(id, buffer);
-		}
-
-		return arr;
-	}
-	
 
 	Shader::Shader(const char* name) noexcept:
-			id              (0),
-			name            (name),
-			model           (-1),
-			view            (-1),
-			modelColor      (-1),
-			modelBrightness (-1),
-			centerPos       (-1),
-			pixelSize       (-1),
-			progress        (-1),
-			mode            (-1),
-			seed            (-1),
-			textures        (defaultTexureArray()) {}
+			name(name), id(0), uniforms() {}
 
-	Shader::Shader(const char* name, GLuint shaderProgram):
-			id              (shaderProgram),
-			name            (name),
-			model           (glGetUniformLocation(shaderProgram, "model")),
-			view            (glGetUniformLocation(shaderProgram, "view")),
-			modelColor      (glGetUniformLocation(shaderProgram, "modelColor")),
-			modelBrightness (glGetUniformLocation(shaderProgram, "modelBrightness")),
-			centerPos       (glGetUniformLocation(shaderProgram, "centerPos")),
-			pixelSize       (glGetUniformLocation(shaderProgram, "pixelSize")),
-			progress        (glGetUniformLocation(shaderProgram, "progress")),
-			mode            (glGetUniformLocation(shaderProgram, "mode")),
-			seed            (glGetUniformLocation(shaderProgram, "seed")),
-			textures        (createTexureArray(id)) {
-
-		glUseProgram(id);
-
-		if (modelBrightness >= 0) {
-			glUniform1f(modelBrightness, 1.0f);
-		}
-
-		for (size_t i = 0; i < textures.size(); i++) {
-			if (textures[i] >= 0) glUniform1i(textures[i], i);
-		}
+	Shader::Shader(const char* name, GLuint id):
+			name(name), id(id), uniforms(createUniforms(id)) {
+		
+		use();
+		setUniform("modelBrightness", 1.0f, false);
+		setUniform("texture0", 0, false);
+		setUniform("texture1", 1, false);
+		setUniform("texture2", 2, false);
+		setUniform("texture3", 3, false);
 	}
 
-
-	template<class V, class F>
-	static void setUniform(const char* uniformName, GLint uniformId, const char* name, const V& value, F func, bool printWarning = true) {
-		if (uniformId >= 0) {
-			func(uniformId, value);
-
-		} else if (printWarning) {
-			fprintf(stderr, "Warning: uniform %s is not found for shader %s\n", uniformName, name);
-		}
-	}
+	Shader::Shader(Shader&& shader):
+			name(shader.name), id(shader.id), uniforms(std::move(shader.uniforms)) {}
 	
+	Shader::~Shader() noexcept {}
 
-	void Shader::setModel(const glm::mat4& mat) {
-		setUniform("model", model, name, mat, [] (GLint uid, const glm::mat4& val) { glUniformMatrix4fv(uid, 1, GL_FALSE, glm::value_ptr(val)); });
+
+	void Shader::use() noexcept {
+		glUseProgram(id);
 	}
 
-	void Shader::setView(const glm::mat4& mat) {
-		setUniform("view", view, name, mat, [] (GLint uid, const glm::mat4& val) { glUniformMatrix4fv(uid, 1, GL_FALSE, glm::value_ptr(val)); });
+
+	template<GLenum... types, class Func>
+	static void setUniform0(const char* typeNames, const char* shaderName, const uniforms_t& uniforms, const char* uniformName, bool warn, Func func) {
+		(void)typeNames;
+		
+		string_view name = uniformName;
+
+		auto it = std::find_if(
+				uniforms.begin(), uniforms.end(),
+				[name] (const auto& p) { return p.first == name; }
+		);
+
+		if (it != uniforms.end()) {
+		
+			#ifndef NDEBUG
+				const GLenum uniformType = it->second.type;
+
+				if (((uniformType != types) && ...)) {
+					fprintf(stderr, "Warning: uniform \"%s\" is incompatible with types %s\n", uniformName, typeNames);
+				}
+			#endif
+
+			func(it->second.id);
+		} else if (warn) {
+			fprintf(stderr, "Warning: uniform \"%s\" is not found for shader \"%s\"\n", uniformName, shaderName);
+		}
 	}
 
-	void Shader::setModelColor(const glm::vec3& vec) {
-		setUniform("modelColor", modelColor, name, vec, [] (GLint uid, const glm::vec3& val) { glUniform3fv(uid, 1, glm::value_ptr(val)); }, false);
+	#ifndef NDEBUG
+	#define TEMPLATED_CALL(...) setUniform0<__VA_ARGS__>
+	#define SET_UNIFORM(TEMPLATE_PARAMS, ...) TEMPLATED_CALL TEMPLATE_PARAMS (#TEMPLATE_PARAMS, __VA_ARGS__)
+	#else
+	#define SET_UNIFORM(TEMPLATE_PARAMS, ...) setUniform0(nullptr, __VA_ARGS__)
+	#endif
+
+
+	void Shader::setUniform(const char* uniformName, const mat4& val, bool warn) {
+		SET_UNIFORM((GL_FLOAT_MAT4), name, uniforms, uniformName, warn, [&] (GLint uid) { glUniformMatrix4fv(uid, 1, GL_FALSE, glm::value_ptr(val)); });
 	}
 
-	void Shader::setModelBrightness(float value) {
-		setUniform("modelBrightness", modelBrightness, name, value, [] (GLint uid, float val) { glUniform1f(uid, val); });
+	void Shader::setUniform(const char* uniformName, const vec3& val, bool warn) {
+		SET_UNIFORM((GL_FLOAT_VEC3), name, uniforms, uniformName, warn, [&] (GLint uid) { glUniform3fv(uid, 1, glm::value_ptr(val)); });
 	}
 
-	void Shader::setCenterPos(const glm::vec3& vec) {
-		setUniform("centerPos", centerPos, name, vec, [] (GLint uid, const glm::vec3& val) { glUniform3fv(uid, 1, glm::value_ptr(val)); });
+	void Shader::setUniform(const char* uniformName, const vec2& val, bool warn) {
+		SET_UNIFORM((GL_FLOAT_VEC2), name, uniforms, uniformName, warn, [&] (GLint uid) { glUniform2fv(uid, 1, glm::value_ptr(val)); });
 	}
 
-	void Shader::setPixelSize(const glm::vec2& vec) {
-		setUniform("pixelSize", pixelSize, name, vec, [] (GLint uid, const glm::vec2& val) { glUniform2fv(uid, 1, glm::value_ptr(val)); });
+	void Shader::setUniform(const char* uniformName, float val, bool warn) {
+		SET_UNIFORM((GL_FLOAT), name, uniforms, uniformName, warn, [=] (GLint uid) { glUniform1f(uid, val); });
 	}
 
-	void Shader::setProgress(float value) {
-		setUniform("progress", progress, name, value, [] (GLint uid, float val) { glUniform1f(uid, val); });
+	void Shader::setUniform(const char* uniformName, GLint val, bool warn) {
+		SET_UNIFORM((GL_INT, GL_SAMPLER_1D, GL_SAMPLER_2D, GL_SAMPLER_3D), name, uniforms, uniformName, warn, [=] (GLint uid) { glUniform1i(uid, val); });
 	}
 
-	void Shader::setMode(GLuint value) {
-		setUniform("mode", mode, name, value, [] (GLint uid, GLuint val) { glUniform1ui(uid, val); });
+	void Shader::setUniform(const char* uniformName, GLuint val, bool warn) {
+		SET_UNIFORM((GL_UNSIGNED_INT), name, uniforms, uniformName, warn, [=] (GLint uid) { glUniform1ui(uid, val); });
 	}
 
-	void Shader::setSeed(GLint value) {
-		setUniform("seed", seed, name, value, [] (GLint uid, GLint val) { glUniform1i(uid, val); });
+
+	void Shader::setModel(const mat4& mat) {
+		setUniform("model", mat);
+	}
+
+	void Shader::setView(const mat4& mat) {
+		setUniform("view", mat);
+	}
+
+	void Shader::setModelColor(const vec3& vec) {
+		setUniform("modelColor", vec, false);
 	}
 }

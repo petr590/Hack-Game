@@ -6,9 +6,10 @@
 
 namespace hack_game {
 	class Camera {
-	public:
 		glm::vec3 pos, target;
+		glm::mat4 view;
 
+	public:
 		Camera(const glm::vec3& pos, const glm::vec3& target):
 				pos(pos), target(target) {}
 		
@@ -20,8 +21,11 @@ namespace hack_game {
 			return target;
 		}
 
+		const glm::mat4& getView() const noexcept {
+			return view;
+		}
+
 		void move(const glm::vec3& offset);
-		glm::mat4 getView() const;
 	};
 }
 

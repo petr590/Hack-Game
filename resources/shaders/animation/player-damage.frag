@@ -1,12 +1,10 @@
-#define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
-
 uniform vec3 centerPos;
 uniform float progress;
 uniform int seed;
 
 in vec3 fragPos;
 
-out vec4 color;
+out vec4 result;
 
 const float TILE_SIZE = 0.05;
 const float EPSILON   = 0.003;
@@ -38,18 +36,9 @@ float invMix(float x, float y, float a) {
 }
 
 
-float simpleNoise(ivec2 pos) {
-	int h = pos.x * 374761393 + pos.y * 668265263 + seed * 9871;
-	h = (h ^ (h >> 13)) * 1274126177;
-	h = h ^ (h >> 16);
-	
-	return h * (1.0 / 0x80000000u);
-}
-
-
 float getNoise(vec2 pos, float radius, float chance) {
 	ivec2 ipos = ivec2(rotate(pos, RING1_NOISE_ROT_SIN, RING1_NOISE_ROT_COS) * (vec2(2.0, 1.0) * 20.0) / radius);
-	return step(chance, simpleNoise(ipos));
+	return step(chance, simpleNoise(seed, ipos));
 }
 
 
@@ -62,7 +51,7 @@ void drawCircle(float dist, float radius) {
 	float outer = smoothstep(radius, radius - EPSILON, dist);
 	float alpha = zoom(progress, RING_START, RING_END, 1.0, 0.0);
 	
-	color = blend(color, vec4(1.0, 0.0, 0.0, inner * outer * alpha));
+	result = blend(result, vec4(1.0, 0.0, 0.0, inner * outer * alpha));
 }
 
 
@@ -78,7 +67,7 @@ void drawRing1(float dist, float radius) {
 		alpha *= getNoise(fragPos.xz - centerPos.xz, radius, chance);
 	}
 	
-	color = blend(color, GRAY(1.0, inner * outer * alpha));
+	result = blend(result, GRAY(1.0, inner * outer * alpha));
 }
 
 void drawRing2(float dist, float radius, float ring3Outer) {
@@ -86,18 +75,18 @@ void drawRing2(float dist, float radius, float ring3Outer) {
 	float outer = smoothstep(RING2_RADIUS + EPSILON * 0.5, RING2_RADIUS, dist) * ring3Outer;
 	float alpha = min(1.0, zoom(progress, 1.0 - RING2_FADE, 1.0, 1.0, 0.0));
 	
-	color = blend(color, GRAY(0.0, inner * outer * alpha));
+	result = blend(result, GRAY(0.0, inner * outer * alpha));
 }
 
 void drawRing3(float dist, float radius, float outer) {
 	float inner = smoothstep(radius - EPSILON * 0.5, radius, dist);
 	
-	color = blend(color, GRAY(1.0, inner * outer));
+	result = blend(result, GRAY(1.0, inner * outer));
 }
 
 
 void main() {
-	color = vec4(0.0);
+	result = vec4(0.0);
 	
 	float dist = distance(fragPos.xz, centerPos.xz);
 	

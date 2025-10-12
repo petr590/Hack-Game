@@ -1,12 +1,10 @@
 #include "main.h"
-#include "shaders.h"
+#include "shader_loader.h"
 #include "context/draw_context.h"
 
 #include <GLFW/glfw3.h>
 
 namespace hack_game {
-	static FramebufferInfo staticFbInfo;
-
 	static void parse_args(int argc, const char* argv[]) {
 		for (int i = 1; i < argc; i++) {
 			std::string arg = argv[i];
@@ -19,7 +17,7 @@ namespace hack_game {
 }
 
 
-#define ANIMATION_SHADER(name, vertexShader, fragmentShader) { name, Shader(name, createAnimationShaderProgram(vertexShader, fragmentShader)) }
+#define ANIMATION_SHADER(name, vertexShader, fragmentShader) Shader(name, createAnimationShaderProgram(vertexShader, fragmentShader))
 
 int main(int argc, const char* argv[]) {
 	using namespace hack_game;
@@ -28,54 +26,41 @@ int main(int argc, const char* argv[]) {
 	try {
 		srand(time(nullptr));
 
-		GLFWwindow* const window = initGLFW();
-		FramebufferInfo fbInfo = initGL();
-		staticFbInfo = fbInfo;
+		const Initializer& initializer = Initializer::getInstance();
 
 		parse_args(argc, argv);
 		
 
 		DrawContext drawContext {
-			.nullShader               = Shader("null"),
-			.mainShader               = Shader("main",  createShaderProgram("main.vert",  "main.frag")),
-			.lightShader              = Shader("light", createShaderProgram("light.vert", "light.frag")),
-			.shaders = {
-				ANIMATION_SHADER("enemyDamage",           "animation.vert",          "enemy-damage.frag"),
-				ANIMATION_SHADER("enemyDestroyBillboard", "textured-animation.vert", "enemy-destroy-billboard.frag"),
-				ANIMATION_SHADER("enemyDestroyFlat",      "animation.vert",          "enemy-destroy-flat.frag"),
-				ANIMATION_SHADER("enemyDestroyParticle",  "animation.vert",          "enemy-destroy-particle.frag"),
-				ANIMATION_SHADER("minionDestroy",         "animation.vert",          "minion-destroy.frag"),
-				ANIMATION_SHADER("playerDamage",          "animation.vert",          "player-damage.frag"),
-			}
+			initializer.getWindowWidth(),
+			initializer.getWindowHeight(),
+			Shader("null"),
+			Shader("main",           createShaderProgram("main.vert",           "main.frag")),
+			Shader("light",          createShaderProgram("light.vert",          "light.frag")),
+			Shader("postprocessing", createShaderProgram("postprocessing.vert", "postprocessing.frag")),
+			ANIMATION_SHADER("enemyDamage",            "animation.vert",          "enemy-damage.frag"),
+			ANIMATION_SHADER("enemyDestroyBillboard",  "textured-animation.vert", "enemy-destroy-billboard.frag"),
+			ANIMATION_SHADER("enemyDestroyFlat",       "animation.vert",          "enemy-destroy-flat.frag"),
+			ANIMATION_SHADER("particleCube",           "animation.vert",          "particle-cube.frag"),
+			ANIMATION_SHADER("minionDestroyBillboard", "animation.vert",          "minion-destroy-billboard.frag"),
+			ANIMATION_SHADER("minionDestroyFlat",      "animation.vert",          "minion-destroy-flat.frag"),
+			ANIMATION_SHADER("playerDamage",           "animation.vert",          "player-damage.frag"),
 		};
 
 		map<GLuint, Shader*> shaderById {
 			{ -1,                              &drawContext.nullShader  },
 			{ drawContext.mainShader.getId(),  &drawContext.mainShader  },
-			{ drawContext.lightShader.getId(), &drawContext.lightShader },
 		};
 
-		for (auto& entry : drawContext.shaders) {
+		for (auto& entry : drawContext.getShaders()) {
 			shaderById[entry.second.getId()] = &entry.second;
 		}
 
-
-		initShaderUniforms(drawContext);
-
-
-		const GLuint postprocessingShaderId = createShaderProgram("postprocessing.vert", "postprocessing.frag");
-
-		glUseProgram(postprocessingShaderId);
-		glUniform1i(glGetUniformLocation(postprocessingShaderId, "screenTexture"), 0);
-		Shader postprocessingShader("postprocessing", postprocessingShaderId);
-
 		onShadersLoaded();
 
-
 		TickContext tickContext	= createTickContext(drawContext);
-		mainLoop(window, fbInfo, postprocessingShader, tickContext, shaderById);
+		mainLoop(initializer, drawContext.getShader("postprocessing"), tickContext, shaderById);
 
-		glfwTerminate();
 		return 0;
 		
 	} catch (...) {

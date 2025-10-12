@@ -10,3 +10,17 @@ sudo apt-get install libglew-dev libglfw3-dev libglm-dev libsoil-dev
 ```
 
 Для Windows скачайте все библиотеки сами
+
+## Сборка
+```
+mkdir release/
+cmake -DCMAKE_BUILD_TYPE=Release -B release/ .
+make -j<количество потоков> -C release/
+```
+
+После опции `-j` укажите количество потоков процессора, чтобы компиляция шла быстрее
+
+## Запуск
+```
+./release/main
+```

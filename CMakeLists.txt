@@ -4,16 +4,15 @@ project(HackGame)
 set(CMAKE_CXX_STANDARD 20)
 
 
-if (BUILD_TYPE MATCHES "Debug")
+if (CMAKE_BUILD_TYPE MATCHES "Debug")
 	message("Debug build")
-	add_compile_options(-g)
+	add_compile_options(-g -O2)
 else ()
 	message("Release build")
-	add_compile_options(-DNDEBUG)
+	add_compile_options(-DNDEBUG -O3)
 endif ()
 
 add_compile_options(
-	-O3
 	-Wall
 	-Wextra
 	-Wpedantic
@@ -37,13 +36,29 @@ add_compile_options(
     -Wno-sign-conversion
 	
 	-Werror=return-type
+	# -Wpadded
 )
 
+set(IMGUI_SOURCES
+	imgui/imgui.cpp
+	imgui/imgui_demo.cpp
+	imgui/imgui_draw.cpp
+	imgui/imgui_tables.cpp
+	imgui/imgui_widgets.cpp
+	imgui/backends/imgui_impl_glfw.cpp
+	imgui/backends/imgui_impl_opengl3.cpp
+)
+
+set_source_files_properties(${IMGUI_SOURCES} PROPERTIES COMPILE_FLAGS "-w")
+
 add_executable(main
+	${IMGUI_SOURCES}
+	
 	src/start.cpp
-	src/main.cpp
 	src/init.cpp
-	src/shaders.cpp
+	src/main.cpp
+	src/render.cpp
+	src/shader_loader.cpp
 	src/util.cpp
 	src/debug.cpp
 
@@ -58,6 +73,7 @@ add_executable(main
 
 	src/context/shader.cpp
 	src/context/tick_context.cpp
+	src/context/draw_context.cpp
 
 	src/entity/camera.cpp
 	src/entity/simple_entity.cpp
@@ -74,7 +90,11 @@ add_executable(main
 	src/entity/animation/enemy_destroy.cpp
 	src/entity/animation/minion_destroy.cpp
 	src/entity/animation/player_damage.cpp
+
+	src/gui/menu.cpp
+	src/gui/menu_bottom_panel.cpp
+	src/gui/menu_select.cpp
 )
 
-target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(main glfw GLEW GL SOIL)
+target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/imgui)
+target_link_libraries(main glfw GLEW GL SOIL dl)

@@ -1,5 +1,5 @@
-#ifndef HACK_GAME__ENTITY_ANIMATION__ENEMY_DESTROY_H
-#define HACK_GAME__ENTITY_ANIMATION__ENEMY_DESTROY_H
+#ifndef HACK_GAME__ENTITY__ANIMATION__ENEMY_DESTROY_H
+#define HACK_GAME__ENTITY__ANIMATION__ENEMY_DESTROY_H
 
 #include "billboard_animation.h"
 #include <vector>
@@ -14,10 +14,12 @@ namespace hack_game {
 		Shader& billboardShader;
 		Shader& flatShader;
 		Shader& particleShader;
-		const GLint seed;
-		glm::mat4 view;
 
-		std::vector<Cube> fadingCubes, solidCubes, frameCubes;
+		std::vector<Cube> fadingCubes;
+		std::vector<Cube> solidCubes;
+		std::vector<Cube> frameCubes;
+		
+		const GLint seed;
 
 	public:
 		EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&&, DrawContext&) noexcept;
@@ -27,7 +29,7 @@ namespace hack_game {
 		void draw() const override;
 	
 	protected:
-		void onRemove() override;
+		void onRemove(TickContext&) override;
 	};
 }
 

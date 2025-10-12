@@ -72,6 +72,11 @@ namespace hack_game {
 
 	void FrameModel::draw(Shader& shader) const {
 		shader.setModelColor(color);
-		VAOModel::draw(shader);
+		
+		assert(vertexArray != 0);
+
+		glBindVertexArray(vertexArray);
+		glDrawElements(GL_LINES, indices.size(), GL_UNSIGNED_INT, nullptr);
+		glBindVertexArray(0);
 	}
 }

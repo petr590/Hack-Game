@@ -3,7 +3,7 @@ uniform float progress;
 
 in vec3 fragPos;
 
-out vec4 color;
+out vec4 result;
 
 const float TILE_SIZE = 0.05;
 const float WIDTH_OFFSET = 0.15;
@@ -27,6 +27,5 @@ void main() {
 	
 	if (alpha < 0.01) discard;
 	
-	color.rgb = vec3(1.0);
-	color.a = alpha;
+	result = GRAY(1.0, alpha);
 }

@@ -1,15 +1,18 @@
 #include "textured_model.h"
 #include "dir_paths.h"
-#include "context/shader.h" // DEBUG
+
+#ifndef NDEBUG
+#include "context/shader.h"
+#endif
+
+#include <map>
+#include <fstream>
+#include <filesystem>
 
 #define GLEW_STATIC
 #include <GL/glew.h>
 #include <SOIL/SOIL.h>
 #include <glm/gtc/type_ptr.hpp>
-
-#include <map>
-#include <fstream>
-#include <filesystem>
 
 namespace hack_game {
 	using std::string;
@@ -199,6 +202,8 @@ namespace hack_game {
 			glBindTexture(GL_TEXTURE_2D, textures[i]);
 		}
 
+		#ifndef NDEBUG
+		
 		GLuint query;
 		glGenQueries(1, &query);
 		glBeginQuery(GL_TIME_ELAPSED, query);
@@ -213,5 +218,11 @@ namespace hack_game {
 		printf("%u %lu\n", shader.getId(), timeElapsed);
 
 		glDeleteQueries(1, &query);
+
+		#else
+
+		VAOModel::draw(shader);
+
+		#endif
 	}
 }

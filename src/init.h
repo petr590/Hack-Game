@@ -8,9 +8,9 @@ class GLFWwindow;
 namespace hack_game {
 	class DrawContext;
 
-	extern int windowWidth, windowHeight, refreshRate;
-
 	struct FramebufferInfo {
+		GLFWwindow* window;
+
 		GLuint msFramebuffer;
 		GLuint msTexture;
 		GLuint msRenderbuffer;
@@ -19,13 +19,51 @@ namespace hack_game {
 		GLuint texture;
 	};
 
-	GLFWwindow* initGLFW();
-	FramebufferInfo initGL();
-	void changeFramebufferSize(const FramebufferInfo&);
-	
+
+	class Initializer {
+		GLFWwindow* window;
+		FramebufferInfo fbInfo;
+		int windowWidth;
+		int windowHeight;
+		int refreshRate;
+
+		Initializer();
+		~Initializer();
+
+	public:
+		static const Initializer& getInstance();
+
+		GLFWwindow* getWindow() const noexcept {
+			return window;
+		}
+
+		const FramebufferInfo& getFbInfo() const noexcept {
+			return fbInfo;
+		}
+
+		int getWindowWidth() const noexcept {
+			return windowWidth;
+		}
+
+		int getWindowHeight() const noexcept {
+			return windowHeight;
+		}
+
+		int getRefreshRate() const noexcept {
+			return refreshRate;
+		}
+
+		void setWindowWidth(int windowWidth) noexcept {
+			this->windowWidth = windowWidth;
+		}
+
+		void setWindowHeight(int windowHeight) noexcept {
+			this->windowHeight = windowHeight;
+		}
+	};
+
+
 	TickContext createTickContext(DrawContext&);
-	void keyCallback(GLFWwindow*, int key, int scancode, int action, int mode);
-	void framebufferSizeCallback(GLFWwindow*, int width, int height);
 }
 
 #endif

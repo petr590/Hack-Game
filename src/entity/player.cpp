@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "nowarn_imgui.h"
 
 namespace hack_game {
 	using std::max;
@@ -39,11 +40,11 @@ namespace hack_game {
 
 	// ------------------------------------------ Player ------------------------------------------
 
-	Player::Player(DrawContext& drawContext, float speed, const Camera& camera):
+	Player::Player(DrawContext& drawContext, const Camera& camera, float speed):
 			Damageable(Side::PLAYER, 3),
 			drawContext(drawContext),
-			speed(speed),
 			camera(camera),
+			speed(speed),
 			pos(TILE_SIZE * 8, 0.0f, TILE_SIZE * 8) {
 		
 		this->camera.move(pos);
@@ -72,37 +73,17 @@ namespace hack_game {
 		}
 	}
 
-	void Player::onKey(int scancode, int action) {
-		if (action != GLFW_PRESS && action != GLFW_RELEASE) return;
+	void Player::updateKeys() {
+		up    = ImGui::IsKeyDown(ImGuiKey_W);
+		left  = ImGui::IsKeyDown(ImGuiKey_A);
+		down  = ImGui::IsKeyDown(ImGuiKey_S);
+		right = ImGui::IsKeyDown(ImGuiKey_D);
+		fire  = ImGui::IsKeyDown(ImGuiKey_LeftShift);
 
-		bool value = action == GLFW_PRESS;
-		switch (scancode) {
-			case SCANCODE_W: up    = value; break;
-			case SCANCODE_A: left  = value; break;
-			case SCANCODE_S: down  = value; break;
-			case SCANCODE_D: right = value; break;
-
-			case SCANCODE_SPACE: fire = value; break;
-
-			case SCANCODE_ARROW_UP:    updateAngle(glm::radians(0.f));   break;
-			case SCANCODE_ARROW_LEFT:  updateAngle(glm::radians(90.f));  break;
-			case SCANCODE_ARROW_DOWN:  updateAngle(glm::radians(180.f)); break;
-			case SCANCODE_ARROW_RIGHT: updateAngle(glm::radians(270.f)); break;
-		}
-
-		// switch (key) {
-		// 	case GLFW_KEY_W: up = value; break;
-		// 	case GLFW_KEY_A: left = value; break;
-		// 	case GLFW_KEY_S: down = value; break;
-		// 	case GLFW_KEY_D: right = value; break;
-
-		// 	case GLFW_KEY_LEFT_SHIFT: fire = value; break;
-
-		// 	case GLFW_KEY_UP:    updateAngle(glm::radians(0.f));   break;
-		// 	case GLFW_KEY_LEFT:  updateAngle(glm::radians(90.f));  break;
-		// 	case GLFW_KEY_DOWN:  updateAngle(glm::radians(180.f)); break;
-		// 	case GLFW_KEY_RIGHT: updateAngle(glm::radians(270.f)); break;
-		// }
+		if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false))    updateAngle(glm::radians(0.f));
+		if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow, false))  updateAngle(glm::radians(90.f));
+		if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, false))  updateAngle(glm::radians(180.f));
+		if (ImGui::IsKeyPressed(ImGuiKey_RightArrow, false)) updateAngle(glm::radians(270.f));
 	}
 
 
@@ -246,7 +227,7 @@ namespace hack_game {
 
 		if (offset.x == 0 && offset.y == 0) return;
 
-		offset = glm::normalize(offset) * (speed * context.deltaTime);
+		offset = glm::normalize(offset) * (speed * context.getDeltaTime());
 		offset = moveWithCollisions(context, vec2(pos.x, pos.z), offset);
 
 		vec3 offset3d(offset.x, 0.0f, offset.y);
@@ -271,7 +252,7 @@ namespace hack_game {
 		move(context);
 
 		if (angle != targetAngle) {
-			float delta = glm::radians(ROTATE_SPEED) * context.deltaTime;
+			float delta = glm::radians(ROTATE_SPEED) * context.getDeltaTime();
 
 			if (angle > targetAngle) {
 				angle = max(angle - delta, targetAngle);
@@ -280,7 +261,7 @@ namespace hack_game {
 			}
 		}
 
-		timeSinceLastBullet += context.deltaTime;
+		timeSinceLastBullet += context.getDeltaTime();
 
 		if (fire && timeSinceLastBullet >= BULLET_PERIOD) {
 			timeSinceLastBullet = fmodf(timeSinceLastBullet, BULLET_PERIOD);
@@ -290,7 +271,7 @@ namespace hack_game {
 			vec3 bulletPos = pos + velocity * (TILE_SIZE * 0.5f);
 
 			context.addEntity(make_shared<PlayerBullet>(
-				drawContext.lightShader, angle, velocity, bulletPos
+				drawContext.getShader("light"), angle, velocity, bulletPos
 			));
 		}
 	}
@@ -315,7 +296,7 @@ namespace hack_game {
 		bool isDark = animation != nullptr && !animation->isFinished() && animation->getTime() <= DARK_DURATION + FADE_DURATION;
 
 		if (isDark) {
-			mainShader.setModelBrightness(clamp(invLerp(animation->getTime(), DARK_DURATION, DARK_DURATION + FADE_DURATION), 0.0f, 1.0f));
+			mainShader.setUniform("modelBrightness", clamp(invLerp(animation->getTime(), DARK_DURATION, DARK_DURATION + FADE_DURATION), 0.0f, 1.0f));
 		}
 
 		if (hitpoints >= 3) models::player3hp.draw(mainShader);
@@ -323,7 +304,7 @@ namespace hack_game {
 		if (hitpoints <= 1) models::player1hp.draw(mainShader);
 
 		if (isDark) {
-			mainShader.setModelBrightness(1.0f);
+			mainShader.setUniform("modelBrightness", 1.0f);
 		}
 	}
 

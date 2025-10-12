@@ -1,4 +1,4 @@
-#include "shaders.h"
+#include "shader_loader.h"
 #include "context/draw_context.h"
 #include "dir_paths.h"
 
@@ -7,26 +7,16 @@
 #include <string>
 #include <memory>
 
-#include <GLFW/glfw3.h>
-#include <glm/mat4x4.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 namespace hack_game {
 	using std::cout;
 	using std::cerr;
 	using std::endl;
 	using std::string;
-	using std::string_view;
 	using std::ios;
 	using std::ifstream;
 	using std::streamsize;
 	using std::unique_ptr;
 	using std::make_unique;
-
-	using glm::mat4;
-	using glm::perspective;
-	using glm::value_ptr;
 
 	const size_t LOG_SIZE = 512;
 
@@ -35,7 +25,7 @@ namespace hack_game {
 
 		if (file.fail()) {
 			cerr << "Cannot open file \"" << path << "\"" << endl;
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		const streamsize fsize = file.tellg();
@@ -88,7 +78,7 @@ namespace hack_game {
 					type == GL_FRAGMENT_SHADER ? "FRAGMENT" : "UNKNOWN";
 			
 			cerr << "ERROR::SHADER::" << strType << "::COMPILATION_FAILED\n" << log << endl;
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		return shader;
@@ -101,8 +91,7 @@ namespace hack_game {
 		GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentShaderPath, prelude);
 
 		if (vertexShader == 0 || fragmentShader == 0) {
-			glfwTerminate();
-			exit(1);
+			exit(EXIT_FAILURE);
 		}
 		
 		
@@ -148,34 +137,5 @@ namespace hack_game {
 
 	void onShadersLoaded() {
 		prelude.reset();
-	}
-
-
-	static void setProjection(GLuint shaderId, const mat4& projection) {
-		glUseProgram(shaderId);
-
-		GLint projectionUniform = glGetUniformLocation(shaderId, "projection");
-		glUniformMatrix4fv(projectionUniform, 1, GL_FALSE, value_ptr(projection));
-	}
-
-
-	void initShaderUniforms(DrawContext& drawContext) {
-		const mat4 projection = perspective(45.0f, GLfloat(windowWidth) / GLfloat(windowHeight), 0.1f, 100.0f);
-		const GLuint mainShaderId = drawContext.mainShader.getId();
-
-		glUseProgram(mainShaderId);
-
-		const GLint lightColorUniform = glGetUniformLocation(mainShaderId, "lightColor");
-		const GLint lightPosUniform   = glGetUniformLocation(mainShaderId, "lightPos");
-
-		glUniform3fv(lightColorUniform, 1, value_ptr(lightColor));
-		glUniform3fv(lightPosUniform, 1, value_ptr(lightPos));
-
-		setProjection(drawContext.mainShader.getId(), projection);
-		setProjection(drawContext.lightShader.getId(), projection);
-
-		for (const auto& entry : drawContext.shaders) {
-			setProjection(entry.second.getId(), projection);
-		}
 	}
 }

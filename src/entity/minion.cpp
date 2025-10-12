@@ -1,6 +1,7 @@
 #include "minion.h"
 #include "player.h"
 #include "bullet.h"
+#include "animation/minion_destroy.h"
 #include "model/models.h"
 #include "context/tick_context.h"
 #include "context/draw_context.h"
@@ -21,21 +22,26 @@ namespace hack_game {
 	Minion::Minion(DrawContext& drawContext, const glm::vec3& pos) noexcept:
 			SimpleEntity(drawContext.mainShader, models::minion),
 			Damageable(Side::ENEMY, 1),
-			bulletShader(drawContext.lightShader),
+			drawContext(drawContext),
 			pos(pos) {}
 	
+
+	std::shared_ptr<const Minion> Minion::shared_from_this() const {
+		return std::dynamic_pointer_cast<const Minion>(std::enable_shared_from_this<Entity>::shared_from_this());
+	}
+
 	
 	void Minion::tick(TickContext& context) {
 		float newAngle = horizontalAngleBetween(pos, context.player->getPos());
 		if (!isnan(newAngle))
 			angle = newAngle;
 		
-		vec2 offset = glm::rotate(context.deltaTime * MINION_SPEED * ANGLE_NORMAL, angle);
+		vec2 offset = glm::rotate(context.getDeltaTime() * MINION_SPEED * ANGLE_NORMAL, angle);
 		offset = resolveBlockCollision(context, vec2(pos.x, pos.z), offset);
 		pos += vec3(offset.x, 0, offset.y);
 
 
-		time += context.deltaTime;
+		time += context.getDeltaTime();
 
 		if (time >= BULLET_PERIOD) {
 			time -= BULLET_PERIOD;
@@ -43,7 +49,7 @@ namespace hack_game {
 			vec2 velocity = glm::rotate(ANGLE_NORMAL * EnemyBullet::DEFAULT_SPEED, angle);
 			
 			context.addEntity(make_shared<EnemyBullet>(
-				bulletShader, false, vec3(velocity.x, 0, velocity.y), pos
+				drawContext.getShader("light"), false, vec3(velocity.x, 0, velocity.y), pos
 			));
 		}
 	}
@@ -58,5 +64,10 @@ namespace hack_game {
 
 	bool Minion::hasCollision(const vec3& point) const {
 		return isPointInsideSphere(point, pos, MINION_RADIUS);
+	}
+
+	void Minion::onDestroy(TickContext& context) {
+		Damageable::onDestroy(context);
+		context.addEntity(make_shared<MinionDestroyAnimation>(shared_from_this(), context, drawContext));
 	}
 }

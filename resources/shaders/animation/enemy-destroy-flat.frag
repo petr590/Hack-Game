@@ -1,5 +1,3 @@
-#define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
-
 uniform vec3 centerPos;
 uniform float progress;
 uniform int seed;
@@ -20,14 +18,6 @@ const int NOISE_INNER_RADIUS = 22;
 const float NOISE_START = 0.05;
 const float NOISE_CHANCE = 0.25;
 
-float simpleNoise(ivec2 pos) {
-	int h = pos.x * 374761393 + pos.y * 668265263 + seed * 9871;
-	h = (h ^ (h >> 13)) * 1274126177;
-	h = h ^ (h >> 16);
-	
-	return h * (1.0 / 0x80000000u);
-}
-
 
 vec4 getNoise(vec2 pos) {
 	pos *= zoom(progress, NOISE_START, END_TIME, 175.0, 150.0);
@@ -37,7 +27,7 @@ vec4 getNoise(vec2 pos) {
 		return GRAY(0.0, 0.0);
 	}
 	
-	float noise = simpleNoise(ipos);
+	float noise = simpleNoise(seed, ipos);
 	
 	float alpha = noise > NOISE_CHANCE ? 0.0 :
 			noise * (1.0 / NOISE_CHANCE) * zoom(progress, NOISE_START, END_TIME, 0.5, 0.0);

@@ -1,5 +1,3 @@
-#define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
-
 uniform vec3 centerPos;
 uniform float progress;
 uniform sampler2D texture0;
@@ -85,7 +83,7 @@ void drawFigure(sampler2D tex, float angleSin, float angleCos) {
 
 void main() {
 	result = vec4(0.0);
-	float dist = length(centerPos.xz - fragPos.xz);
+	float dist = distance(fragPos, centerPos);
 	
 	if (progress >= EXPLOSION_START && progress <= EXPLOSION_END) {
 		float alpha = min(1.0, zoom(progress, EXPLOSION_START, EXPLOSION_END, 5.0, 0.0));
