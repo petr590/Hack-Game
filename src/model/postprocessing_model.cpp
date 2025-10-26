@@ -6,6 +6,11 @@
 
 namespace hack_game {
 
+	struct PostprocessingModel::Vertex {
+		const glm::vec2 pos;
+		const glm::vec2 texCoord;
+	};
+
 	PostprocessingModel::PostprocessingModel():
 			vertices {
 				Vertex { .pos {-1, -1}, .texCoord {0, 0} },
@@ -20,6 +25,8 @@ namespace hack_game {
 		};
 	}
 
+	PostprocessingModel::~PostprocessingModel() {}
+
 
 	GLuint PostprocessingModel::createVertexArray() {
 		GLuint VBO, EBO, VAO;
@@ -31,10 +38,10 @@ namespace hack_game {
 		glBindVertexArray(VAO);
 
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);	
-		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(vertices.size() * sizeof(vertices[0])), &vertices[0], GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(vertices.size() * sizeof(vertices[0])), vertices.data(), GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);	
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(indices.size() * sizeof(indices[0])), &indices[0], GL_STATIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, GLsizeiptr(indices.size() * sizeof(indices[0])), indices.data(), GL_STATIC_DRAW);
 
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<GLvoid*>(offsetof(Vertex, pos)));
 		glEnableVertexAttribArray(0);

@@ -7,7 +7,7 @@ namespace hack_game {
 
 	class PlayerDamageAnimation: public Animation {
 	public:
-		PlayerDamageAnimation(std::shared_ptr<const EntityWithPos>&&, DrawContext&);
+		PlayerDamageAnimation(std::shared_ptr<const EntityWithPos>&&, ShaderManager&);
 	};
 }
 

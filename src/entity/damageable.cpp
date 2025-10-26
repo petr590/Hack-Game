@@ -1,5 +1,5 @@
 #include "damageable.h"
-#include "context/tick_context.h"
+#include "level/level.h"
 
 namespace hack_game {
 
@@ -9,7 +9,7 @@ namespace hack_game {
 			side(side), hitpoints(hitpoints) {}
 
 	
-	void Damageable::damage(TickContext& context, hp_t damage) {
+	void Damageable::damage(Level& level, hp_t damage) {
 		if (invulnerable()) {
 			return;
 		}
@@ -18,11 +18,11 @@ namespace hack_game {
 		hitpoints -= damage;
 
 		if (oldHitpoints > 0 && hitpoints <= 0) {
-			onDestroy(context);
+			onDestroy(level);
 		}
 	}
 
-	void Damageable::onDestroy(TickContext& context) {
-		context.removeEntity(shared_from_this());
+	void Damageable::onDestroy(Level& level) {
+		level.removeEntity(shared_from_this());
 	}
 }

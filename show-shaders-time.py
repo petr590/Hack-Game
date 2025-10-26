@@ -16,8 +16,8 @@ def read_times_per_frame(filename):
 			times[shader_id].append(time)
 	return times
 
-old_times = read_times_per_frame('shaders-time.log.old')
-new_times = read_times_per_frame('shaders-time.log')
+old_times = read_times_per_frame('debug/shaders-time.log.old')
+new_times = read_times_per_frame('debug/shaders-time.log')
 
 shader_ids = sorted(set(old_times.keys()) | set(new_times.keys()))
 

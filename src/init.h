@@ -1,16 +1,14 @@
 #ifndef HACK_GAME__INIT_H
 #define HACK_GAME__INIT_H
 
-#include "context/tick_context.h"
+#include "level/level.h"
 
 class GLFWwindow;
 
 namespace hack_game {
-	class DrawContext;
+	class ShaderManager;
 
 	struct FramebufferInfo {
-		GLFWwindow* window;
-
 		GLuint msFramebuffer;
 		GLuint msTexture;
 		GLuint msRenderbuffer;
@@ -20,18 +18,20 @@ namespace hack_game {
 	};
 
 
-	class Initializer {
+	class WindowData {
 		GLFWwindow* window;
 		FramebufferInfo fbInfo;
 		int windowWidth;
 		int windowHeight;
 		int refreshRate;
 
-		Initializer();
-		~Initializer();
+		WindowData();
+		~WindowData();
+
+		WindowData(const WindowData&) = delete;
 
 	public:
-		static const Initializer& getInstance();
+		static const WindowData& getInstance();
 
 		GLFWwindow* getWindow() const noexcept {
 			return window;
@@ -61,9 +61,6 @@ namespace hack_game {
 			this->windowHeight = windowHeight;
 		}
 	};
-
-
-	TickContext createTickContext(DrawContext&);
 }
 
 #endif

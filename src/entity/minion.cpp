@@ -3,8 +3,8 @@
 #include "bullet.h"
 #include "animation/minion_destroy.h"
 #include "model/models.h"
-#include "context/tick_context.h"
-#include "context/draw_context.h"
+#include "level/level.h"
+#include "shader/shader_manager.h"
 #include "util.h"
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -19,10 +19,10 @@ namespace hack_game {
 	static const float MINION_RADIUS = 0.015f;
 	static const float MINION_SPEED = TILE_SIZE * 0.5f;
 
-	Minion::Minion(DrawContext& drawContext, const glm::vec3& pos) noexcept:
-			SimpleEntity(drawContext.mainShader, models::minion),
+	Minion::Minion(ShaderManager& shaderManager, const glm::vec3& pos) noexcept:
+			SimpleEntity(shaderManager.mainShader, models::minion),
 			Damageable(Side::ENEMY, 1),
-			drawContext(drawContext),
+			shaderManager(shaderManager),
 			pos(pos) {}
 	
 
@@ -31,25 +31,25 @@ namespace hack_game {
 	}
 
 	
-	void Minion::tick(TickContext& context) {
-		float newAngle = horizontalAngleBetween(pos, context.player->getPos());
+	void Minion::tick(Level& level) {
+		float newAngle = horizontalAngleBetween(pos, level.getPlayer()->getPos());
 		if (!isnan(newAngle))
 			angle = newAngle;
 		
-		vec2 offset = glm::rotate(context.getDeltaTime() * MINION_SPEED * ANGLE_NORMAL, angle);
-		offset = resolveBlockCollision(context, vec2(pos.x, pos.z), offset);
+		vec2 offset = glm::rotate(level.getDeltaTime() * MINION_SPEED * ANGLE_NORMAL, angle);
+		offset = resolveBlockCollision(level, vec2(pos.x, pos.z), offset);
 		pos += vec3(offset.x, 0, offset.y);
 
 
-		time += context.getDeltaTime();
+		time += level.getDeltaTime();
 
 		if (time >= BULLET_PERIOD) {
 			time -= BULLET_PERIOD;
 
 			vec2 velocity = glm::rotate(ANGLE_NORMAL * EnemyBullet::DEFAULT_SPEED, angle);
 			
-			context.addEntity(make_shared<EnemyBullet>(
-				drawContext.getShader("light"), false, vec3(velocity.x, 0, velocity.y), pos
+			level.addEntity(make_shared<EnemyBullet>(
+				shaderManager.getShader("light"), false, vec3(velocity.x, 0, velocity.y), pos
 			));
 		}
 	}
@@ -66,8 +66,8 @@ namespace hack_game {
 		return isPointInsideSphere(point, pos, MINION_RADIUS);
 	}
 
-	void Minion::onDestroy(TickContext& context) {
-		Damageable::onDestroy(context);
-		context.addEntity(make_shared<MinionDestroyAnimation>(shared_from_this(), context, drawContext));
+	void Minion::onDestroy(Level& level) {
+		Damageable::onDestroy(level);
+		level.addEntity(make_shared<MinionDestroyAnimation>(shared_from_this(), level, shaderManager));
 	}
 }

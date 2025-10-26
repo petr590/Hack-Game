@@ -43,7 +43,7 @@ namespace hack_game {
 		virtual bool hasCollision(const glm::vec3& point) const = 0;
 
 		/// Наносит урон по сущности, если она не неуязвимая
-		virtual void damage(TickContext&, hp_t damage);
+		virtual void damage(Level&, hp_t damage);
 
 		bool destroyed() const noexcept {
 			return hitpoints <= 0;
@@ -59,7 +59,7 @@ namespace hack_game {
 	
 	protected:
 		/// Вызывается при уничтожении сущности только 1 раз, когда this->hitpoints <= 0. Не путать с деструктором!
-		virtual void onDestroy(TickContext&);
+		virtual void onDestroy(Level&);
 	};
 }
 

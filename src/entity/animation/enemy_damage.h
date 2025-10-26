@@ -7,7 +7,7 @@ namespace hack_game {
 
 	class EnemyDamageAnimation: public BillboardAnimation {
 	public:
-		EnemyDamageAnimation(std::shared_ptr<const EntityWithPos>&&, DrawContext&) noexcept;
+		EnemyDamageAnimation(std::shared_ptr<const EntityWithPos>&&, ShaderManager&) noexcept;
 	};
 }
 

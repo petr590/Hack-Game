@@ -7,15 +7,15 @@
 namespace hack_game {
 
 	class PostprocessingModel: public VAOModel {
-		struct Vertex {
-			glm::vec2 pos;
-			glm::vec2 texCoord;
-		};
-
+	public:
+		struct Vertex;
+	
+	private:
 		std::vector<Vertex> vertices;
 	
 	public:
 		PostprocessingModel();
+		~PostprocessingModel();
 
 	protected:
 		GLuint createVertexArray() override;

@@ -32,12 +32,12 @@ namespace hack_game {
 			return true;
 		}
 
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		void draw() const override;
 		glm::mat4 getModelTransform() const override;
 	
 	protected:
-		virtual void onRemove(TickContext&) {}
+		virtual void onRemove(Level&) {}
 		glm::vec3 getPos() const noexcept;
 	};
 }

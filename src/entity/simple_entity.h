@@ -16,7 +16,7 @@ namespace hack_game {
 				shader(shader), model(model) {}
 
 		GLuint getShaderProgram() const noexcept override;
-		void tick(TickContext&) override {}
+		void tick(Level&) override {}
 		void draw() const override;
 		virtual glm::mat4 getModelTransform() const;
 	};

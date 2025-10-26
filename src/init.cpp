@@ -1,7 +1,7 @@
 #include "init.h"
 #include "main.h"
 #include "model/models.h"
-#include "context/draw_context.h"
+#include "shader/shader_manager.h"
 #include "entity/simple_entity.h"
 #include "entity/player.h"
 #include "entity/enemy.h"
@@ -19,20 +19,14 @@
 namespace hack_game {
 	using std::cerr;
 	using std::endl;
-	using std::vector;
-	using std::shared_ptr;
-	using std::make_shared;
 
-	using glm::vec3;
-	using glm::uvec2;
 
 	static const GLsizei SAMPLES = 4;
-	static Initializer* initializer = nullptr;
+	static WindowData* windowData = nullptr;
 
-
-	const Initializer& Initializer::getInstance() {
-		static Initializer instance;
-		initializer = &instance;
+	const WindowData& WindowData::getInstance() {
+		static WindowData instance;
+		windowData = &instance;
 		return instance;
 	}
 
@@ -49,7 +43,7 @@ namespace hack_game {
 	static void framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
 
-	Initializer::Initializer() {
+	WindowData::WindowData() {
 		const GLFWvidmode* mode = initGLFW();
 		windowWidth = mode->width;
 		windowHeight = mode->height;
@@ -62,7 +56,7 @@ namespace hack_game {
 		fbInfo = initGL(window, windowWidth, windowHeight);
 	}
 
-	Initializer::~Initializer() {
+	WindowData::~WindowData() {
 		shutdownImGui();
 		shutdownGLFW(window);
 	}
@@ -210,7 +204,6 @@ namespace hack_game {
 		glViewport(0, 0, width, height);
 		
 		FramebufferInfo fbInfo;
-		fbInfo.window = window;
 		generateMultisampleBuffer(fbInfo, windowWidth, windowHeight);
 		generateFramebuffer(fbInfo, windowWidth, windowHeight);
 		return fbInfo;
@@ -218,10 +211,10 @@ namespace hack_game {
 
 
 	static void framebufferSizeCallback(GLFWwindow* window, int width, int height) {
-		initializer->setWindowWidth(width);
-		initializer->setWindowHeight(height);
+		windowData->setWindowWidth(width);
+		windowData->setWindowHeight(height);
 
-		const FramebufferInfo& fbInfo = initializer->getFbInfo();
+		const FramebufferInfo& fbInfo = windowData->getFbInfo();
 
 		GLint fbWidth, fbHeight;
 		glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
@@ -240,72 +233,5 @@ namespace hack_game {
 		glBindTexture(GL_TEXTURE_2D, 0);
 
 		onChangeWindowSize(width, height);
-	}
-
-
-	// ------------------------------------ createTickContext -------------------------------------
-
-	static void empty_deleter(Entity*) {}
-
-	static vector<Block> blocks;
-
-
-	TickContext createTickContext(DrawContext& drawContext) {
-		Shader& mainShader = drawContext.mainShader;
-
-		blocks.reserve(12);
-
-		blocks.push_back(Block::breakable(mainShader, uvec2(2, 0)));
-		blocks.push_back(Block::breakable(mainShader, uvec2(3, 0)));
-		blocks.push_back(Block::breakable(mainShader, uvec2(4, 0)));
-
-		blocks.push_back(Block::unbreakable(mainShader, uvec2( 3,  9)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2( 3, 10)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2( 3, 11)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2(16,  9)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2(16, 10)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2(16, 11)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2( 9, 17)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2(10, 17)));
-		blocks.push_back(Block::unbreakable(mainShader, uvec2(11, 17)));
-
-
-		const size_t mapWidth = 20;
-		const size_t mapHeight = 20;
-
-		Map map(mapWidth, mapHeight);
-		
-		for (Block& block : blocks) {
-			map[block.pos] = &block;
-		}
-
-
-		shared_ptr<Player> player = make_shared<Player>(
-			drawContext,
-			Camera(
-				vec3(0.0f, 0.75f, 0.35f),
-				// vec3(0.0f, 1.5f, 0.0f), // вид сверху
-				vec3(0.0f, 0.0f, -0.05f) // вид сверху и сбоку
-			),
-			0.25f
-		);
-
-		shared_ptr<Enemy> enemy = make_shared<Enemy1>(
-			drawContext,
-			vec3(10.5f * TILE_SIZE, 0.0f, 10.5f * TILE_SIZE)
-		);
-
-		TickContext tickContext(std::move(map), player, enemy);
-
-		for (Block& block : blocks) {
-			tickContext.addEntity(shared_ptr<Entity>(&block, empty_deleter));
-		}
-
-		tickContext.addEntity(make_shared<SimpleEntity>(drawContext.mainShader, models::platform));
-		tickContext.addEntity(make_shared<Minion>(drawContext, vec3(12.5f * TILE_SIZE, 0.0f, 10.5f * TILE_SIZE)));
-
-		tickContext.updateEntities();
-
-		return tickContext;
 	}
 }

@@ -1,6 +1,6 @@
 #include "util.h"
 #include "entity/block.h"
-#include "context/tick_context.h"
+#include "level/level.h"
 
 namespace hack_game {
 	using std::min;
@@ -26,7 +26,7 @@ namespace hack_game {
 			lookAt.z - pos.z
 		);
 
-		if (glm::length(dir) == 0) {
+		if (dir.x == 0 && dir.y == 0) {
 			return std::numeric_limits<float>::quiet_NaN();
 		}
 
@@ -34,14 +34,13 @@ namespace hack_game {
 	}
 
 
-	static vec2 resolveBlockCollision(const TickContext& context, const vec2& pos, vec2 offset, const uvec2& mapPos) {
-		if (context.map[mapPos] == nullptr) {
+	static vec2 resolveBlockCollision(const Level& level, const vec2& pos, vec2 offset, const uvec2& mapPos) {
+		if (level.map[mapPos] == nullptr) {
 			return offset;
 		}
 
-		AABB block = context.map[mapPos]->getHitbox();
-
-		vec2 newPos = pos + offset;
+		const AABB block = level.map[mapPos]->getHitbox();
+		const vec2 newPos = pos + offset;
 		
 		if (offset.x != 0 && block.containsInclusive(vec2(newPos.x, pos.y))) {
 			if (offset.x > 0) offset.x = max(0.0f, offset.x + (block.min.x - newPos.x - EPSILON));
@@ -57,22 +56,22 @@ namespace hack_game {
 	}
 
 
-	vec2 resolveBlockCollision(const TickContext& context, const vec2& pos, vec2 offset) {
+	vec2 resolveBlockCollision(const Level& level, const vec2& pos, vec2 offset) {
 		const vec2 newPos = pos + offset;
-		const uvec2 minPos = context.getMapPos(glm::min(pos, newPos) - EPSILON);
-		const uvec2 maxPos = context.getMapPos(glm::max(pos, newPos) + EPSILON);
+		const uvec2 minPos = level.getMapPos(glm::min(pos, newPos) - EPSILON);
+		const uvec2 maxPos = level.getMapPos(glm::max(pos, newPos) + EPSILON);
 
-		offset = resolveBlockCollision(context, pos, offset, minPos);
+		offset = resolveBlockCollision(level, pos, offset, minPos);
 
 		if (minPos.x != maxPos.x) {
-			offset = resolveBlockCollision(context, pos, offset, uvec2(maxPos.x, minPos.y));
+			offset = resolveBlockCollision(level, pos, offset, uvec2(maxPos.x, minPos.y));
 		}
 
 		if (minPos.y != maxPos.y) {
-			offset = resolveBlockCollision(context, pos, offset, uvec2(minPos.x, maxPos.y));
+			offset = resolveBlockCollision(level, pos, offset, uvec2(minPos.x, maxPos.y));
 
 			if (minPos.x != maxPos.x) {
-				offset = resolveBlockCollision(context, pos, offset, maxPos);
+				offset = resolveBlockCollision(level, pos, offset, maxPos);
 			}
 		}
 

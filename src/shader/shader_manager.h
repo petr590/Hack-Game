@@ -1,5 +1,5 @@
-#ifndef HACK_GAME_DRAW_CONTEXT_H
-#define HACK_GAME_DRAW_CONTEXT_H
+#ifndef HACK_GAME__SHADER__SHADER_MANAGER_H
+#define HACK_GAME__SHADER__SHADER_MANAGER_H
 
 #include "shader.h"
 #include <map>
@@ -7,16 +7,17 @@
 
 namespace hack_game {
 
-	struct DrawContext {
+	struct ShaderManager {
 		Shader nullShader; // Пустой шейдер, id = 0
 		Shader mainShader;
 
 	private:
 		std::map<std::string_view, Shader> shaders;
+		std::map<GLuint, Shader*> shadersById;
 
 	public:
 		template<typename... Shaders>
-		DrawContext(int windowWidth, int windowHeight, Shader&& nullShader, Shader&& mainShader, Shaders&&... shaders):
+		ShaderManager(int windowWidth, int windowHeight, Shader&& nullShader, Shader&& mainShader, Shaders&&... shaders):
 				nullShader(std::move(nullShader)),
 				mainShader(std::move(mainShader)) {
 			
@@ -28,7 +29,14 @@ namespace hack_game {
 			return shaders;
 		}
 
+		const std::map<GLuint, Shader*>& getShadersById() const noexcept {
+			return shadersById;
+		}
+
 		Shader& getShader(const char* name);
+		Shader& getShader(GLuint id);
+
+		void updateWindowSize(GLint width, GLint height);
 	
 	private:
 		void addShader(Shader&&);

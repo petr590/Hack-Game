@@ -1,6 +1,6 @@
 #version 330 core
 
-#define GRAY(rgb, a) vec4(rgb, rgb, rgb, a)
+#define GRAY(rgb, alp) vec4(rgb, rgb, rgb, alp)
 
 vec4 blend(vec4 color1, vec4 color2) {
 	float alpha = color2.a + color1.a * (1.0 - color2.a);

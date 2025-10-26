@@ -3,8 +3,8 @@
 #include "player.h"
 #include "block.h"
 #include "model/models.h"
-#include "context/shader.h"
-#include "context/tick_context.h"
+#include "shader/shader.h"
+#include "level/level.h"
 #include "util.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -36,18 +36,18 @@ namespace hack_game {
 			velocity(velocity),
 			pos(pos) {}
 
-	void Bullet::tick(TickContext& context) {
-		pos += velocity * context.getDeltaTime();
+	void Bullet::tick(Level& level) {
+		pos += velocity * level.getDeltaTime();
 
-		if (checkCollision(context)) {
-			context.removeEntity(shared_from_this());
+		if (checkCollision(level)) {
+			level.removeEntity(shared_from_this());
 			return;
 		}
 
 		if (pos.x > LIMIT || pos.x < -LIMIT ||
 			pos.z > LIMIT || pos.z < -LIMIT) {
 
-			context.removeEntity(shared_from_this());
+			level.removeEntity(shared_from_this());
 		}
 	}
 
@@ -61,17 +61,17 @@ namespace hack_game {
 
 
 
-	static Block* getCollisionWithBlock(TickContext& context, const vec2& pos2d) {
-		const uvec2 mapPos = context.getMapPos(pos2d);
+	static Block* getCollisionWithBlock(Level& level, const vec2& pos2d) {
+		const uvec2 mapPos = level.getMapPos(pos2d);
 
-		if (context.map[mapPos] == nullptr) {
+		if (level.map[mapPos] == nullptr) {
 			return nullptr;
 		}
 
-		const AABB block = context.map[mapPos]->getHitbox();
+		const AABB block = level.map[mapPos]->getHitbox();
 
 		if (block.containsInclusive(pos2d)) {
-			return context.map[mapPos];
+			return level.map[mapPos].get();
 		}
 
 		return nullptr;
@@ -84,16 +84,16 @@ namespace hack_game {
 			Bullet(shader, models::playerBullet, angle, velocity, pos) {}
 
 
-	bool PlayerBullet::checkCollision(TickContext& context) {
-		Block* block = getCollisionWithBlock(context, vec2(pos.x, pos.z));
+	bool PlayerBullet::checkCollision(Level& level) {
+		Block* block = getCollisionWithBlock(level, vec2(pos.x, pos.z));
 		if (block != nullptr) {
-			block->damage(context, 1);
+			block->damage(level, 1);
 			return true;
 		}
 
-		for (const auto& damageable : context.getDamageableEnemyEntities()) {
+		for (const auto& damageable : level.getDamageableEnemyEntities()) {
 			if (!damageable->destroyed() && damageable->hasCollision(pos)) {
-				damageable->damage(context, 1);
+				damageable->damage(level, 1);
 				return true;
 			}
 		}
@@ -124,19 +124,19 @@ namespace hack_game {
 	}
 
 
-	void EnemyBullet::onDestroy(TickContext& context) {
-		context.removeEntity(shared_from_this());
+	void EnemyBullet::onDestroy(Level& level) {
+		level.removeEntity(shared_from_this());
 	}
 	
 	
-	bool EnemyBullet::checkCollision(TickContext& context) {
-		Block* block = getCollisionWithBlock(context, vec2(pos.x, pos.z));
+	bool EnemyBullet::checkCollision(Level& level) {
+		Block* block = getCollisionWithBlock(level, vec2(pos.x, pos.z));
 		if (block != nullptr) {
 			return true;
 		}
 
-		if (hasCollision(context.player->getPos())) {
-			context.player->damage(context, 1);
+		if (hasCollision(level.getPlayer()->getPos())) {
+			level.getPlayer()->damage(level, 1);
 			return true;
 		}
 

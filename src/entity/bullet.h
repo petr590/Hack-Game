@@ -20,7 +20,7 @@ namespace hack_game {
 			return pos;
 		}
 		
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		glm::mat4 getModelTransform() const override;
 	
 	protected:
@@ -28,7 +28,7 @@ namespace hack_game {
 		 * Проверяет коллизию с одним из объектов в сцене и наносит ему урон, если есть коллизия
 		 * @return true, если есть коллизия, иначе false
 		 */
-		virtual bool checkCollision(TickContext&) = 0;
+		virtual bool checkCollision(Level&) = 0;
 	};
 
 
@@ -37,7 +37,7 @@ namespace hack_game {
 		PlayerBullet(Shader& shader, float angle, const glm::vec3& velocity, const glm::vec3& pos);
 
 	protected:
-		bool checkCollision(TickContext&) override;
+		bool checkCollision(Level&) override;
 	};
 
 
@@ -51,8 +51,8 @@ namespace hack_game {
 		bool hasCollision(const glm::vec3& point) const override;
 
 	protected:
-		void onDestroy(TickContext&) override;
-		bool checkCollision(TickContext&) override;
+		void onDestroy(Level&) override;
+		bool checkCollision(Level&) override;
 	};
 }
 

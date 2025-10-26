@@ -1,8 +1,8 @@
 #include "enemy_destroy.h"
 #include "entity/player.h"
 #include "entity/enemy.h"
-#include "context/draw_context.h"
-#include "context/tick_context.h"
+#include "shader/shader_manager.h"
+#include "level/level.h"
 #include "cube_particle_mode.h"
 #include "globals.h"
 #include "util.h"
@@ -58,11 +58,11 @@ namespace hack_game {
 
 	// ---------------------------------- EnemyDestroyAnimation -----------------------------------
 
-	EnemyDestroyAnimation::EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&& entity, DrawContext& drawContext) noexcept:
-			BillboardAnimation(std::move(entity), drawContext.nullShader, DURATION, SIZE, Enemy::RADIUS, models::texturedPlane),
-			billboardShader (drawContext.getShader("enemyDestroyBillboard")),
-			flatShader      (drawContext.getShader("enemyDestroyFlat")),
-			particleShader  (drawContext.getShader("particleCube")),
+	EnemyDestroyAnimation::EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&& entity, ShaderManager& shaderManager) noexcept:
+			BillboardAnimation(std::move(entity), shaderManager.nullShader, DURATION, SIZE, Enemy::RADIUS, models::enemyDestroyBillboard),
+			billboardShader (shaderManager.getShader("enemyDestroyBillboard")),
+			flatShader      (shaderManager.getShader("enemyDestroyFlat")),
+			particleShader  (shaderManager.getShader("particleCube")),
 			seed            (randomInt32()) {
 		
 		destroyAnimationCount += 1;
@@ -71,7 +71,7 @@ namespace hack_game {
 	EnemyDestroyAnimation::~EnemyDestroyAnimation() noexcept {}
 
 
-	void EnemyDestroyAnimation::onRemove(TickContext&) {
+	void EnemyDestroyAnimation::onRemove(Level&) {
 		destroyAnimationCount -= 1;
 	}
 
@@ -131,21 +131,21 @@ namespace hack_game {
 	}
 	
 
-	void EnemyDestroyAnimation::tick(TickContext& context) {
-		BillboardAnimation::tick(context);
+	void EnemyDestroyAnimation::tick(Level& level) {
+		BillboardAnimation::tick(level);
 
 		if (time >= CUBES_START && time <= CUBES_END) {
 
-			const int newCubes = static_cast<int>(randomBetween(1, 20) * randomBetween(1, 20) * context.getDeltaTime());
+			const int newCubes = static_cast<int>(randomBetween(1, 20) * randomBetween(1, 20) * level.getDeltaTime());
 
 			for (int i = 0; i < newCubes; i++) {
 				addCube(time, getPos(), fadingCubes, solidCubes, frameCubes);
 			}
 		}
 		
-		updateCubes(fadingCubes, context.getDeltaTime());
-		updateCubes(solidCubes, context.getDeltaTime());
-		updateCubes(frameCubes, context.getDeltaTime());
+		updateCubes(fadingCubes, level.getDeltaTime());
+		updateCubes(solidCubes, level.getDeltaTime());
+		updateCubes(frameCubes, level.getDeltaTime());
 	}
 
 

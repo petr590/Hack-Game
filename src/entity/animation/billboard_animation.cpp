@@ -1,6 +1,6 @@
 #include "billboard_animation.h"
 #include "entity/player.h"
-#include "context/tick_context.h"
+#include "level/level.h"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace hack_game {
@@ -10,9 +10,9 @@ namespace hack_game {
 	using glm::mat3;
 	using glm::mat4;
 
-	void BillboardAnimation::tick(TickContext& context) {
-		Animation::tick(context);
-		view = context.player->getCamera().getView();
+	void BillboardAnimation::tick(Level& level) {
+		Animation::tick(level);
+		view = level.getPlayer()->getCamera().getView();
 	}
 
 

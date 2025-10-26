@@ -12,11 +12,6 @@ namespace hack_game {
 		ColoredModel blackCube       (0x000000, "cube.obj");
 		ColoredModel breakableCube   (0x41403B, blackCube);
 		ColoredModel unbreakableCube (0xE0DAD1, blackCube);
-
-		ColoredModel playerBase   (0xE0DAD1, "player/base.obj");
-		ColoredModel playerCenter (0x41403B, "player/center.obj");
-		ColoredModel playerLeft   (0xE0DAD1, "player/left.obj");
-		ColoredModel playerRight  (0xE0DAD1, "player/right.obj");
 		ColoredModel playerBullet (0xFFFFFF, "player-bullet.obj");
 
 		ColoredModel sphere            (0x7A7876, "sphere.obj");
@@ -26,22 +21,28 @@ namespace hack_game {
 		ColoredModel minion (0x7d746e, "minion.obj");
 
 
+		static ColoredModel playerBase   (0xE0DAD1, "player/base.obj");
+		static ColoredModel playerCenter (0x41403B, "player/center.obj");
+		static ColoredModel playerLeft   (0xE0DAD1, "player/left.obj");
+		static ColoredModel playerRight  (0xE0DAD1, "player/right.obj");
 
-		CompositeModel compositeModels[] = {
+
+		static CompositeModel compositeModels[] = {
 				CompositeModel { &playerBase, &playerCenter, &playerLeft, &playerRight },
 				CompositeModel { &playerBase, &playerCenter, &playerLeft },
 				CompositeModel { &playerBase, &playerCenter },
 		};
 
-		FrameModel frameModels[] = {
+		static FrameModel frameModels[] = {
 			FrameModel(0x000000, "cube-frame.obj"),
 		};
 
-		TexturedModel texturedModels[] = {
+		static TexturedModel texturedModels[] = {
 			TexturedModel("plane.obj", {"enemy-destroy-1.png", "enemy-destroy-2.png", "enemy-destroy-3.png"}),
+			TexturedModel("plane.obj", {"minion-destroy-1.png", "minion-destroy-2.png", "minion-destroy-3.png"}),
 		};
 
-		PostprocessingModel postprocessingModels[] = {
+		static PostprocessingModel postprocessingModels[] = {
 			PostprocessingModel(),
 		};
 
@@ -52,7 +53,8 @@ namespace hack_game {
 		Model& player1hp = compositeModels[2];
 
 		Model& cubeFrame = frameModels[0];
-		Model& texturedPlane = texturedModels[0];
+		Model& enemyDestroyBillboard = texturedModels[0];
+		Model& minionDestroyBillboard = texturedModels[1];
 		Model& postprocessingModel = postprocessingModels[0];
 	}
 }

@@ -10,7 +10,7 @@ namespace hack_game {
 	class Animation;
 
 	class Player final: public Damageable, public EntityWithPos {
-		DrawContext& drawContext;
+		ShaderManager& shaderManager;
 		Camera camera;
 		const float speed;
 
@@ -28,7 +28,7 @@ namespace hack_game {
 		bool fire  = false;
 
 	public:
-		Player(DrawContext&, const Camera&, float speed);
+		Player(ShaderManager&, const Camera&, float speed, const glm::vec3& pos);
 
 		const glm::vec3& getPos() const noexcept override {
 			return pos;
@@ -42,17 +42,17 @@ namespace hack_game {
 		std::shared_ptr<const Player> shared_from_this() const;
 		
 		void updateKeys();
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		void draw() const override;
 		bool hasCollision(const glm::vec3&) const override;
-		void damage(TickContext&, hp_t) override;
+		void damage(Level&, hp_t) override;
 			
 	protected:
-		void onDestroy(TickContext&) override;
+		void onDestroy(Level&) override;
 
 	private:
 		void updateAngle(float targetAngle);
-		void move(TickContext&);
+		void move(Level&);
 	};
 }
 

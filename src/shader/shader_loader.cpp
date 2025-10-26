@@ -1,5 +1,4 @@
 #include "shader_loader.h"
-#include "context/draw_context.h"
 #include "dir_paths.h"
 
 #include <iostream>

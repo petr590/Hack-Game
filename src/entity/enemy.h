@@ -17,7 +17,7 @@ namespace hack_game {
 		static constexpr float RADIUS = 0.02f;
 
 	protected:
-		DrawContext& drawContext;
+		ShaderManager& shaderManager;
 		const ColoredModel& coloredModel;
 		std::shared_ptr<Animation> animation = nullptr;
 
@@ -26,22 +26,22 @@ namespace hack_game {
 		float time = 0;
 
 	public:
-		Enemy(DrawContext&, float bulletSpawnPeriod, const glm::vec3& pos) noexcept;
+		Enemy(ShaderManager&, float bulletSpawnPeriod, const glm::vec3& pos) noexcept;
 
 		const glm::vec3& getPos() const noexcept override {
 			return pos;
 		}
 		
 		bool hasCollision(const glm::vec3& point) const override;
-		void damage(TickContext&, hp_t damage) override;
-		void tick(TickContext&) override;
+		void damage(Level&, hp_t damage) override;
+		void tick(Level&) override;
 		void draw() const override;
 		glm::mat4 getModelTransform() const override;
 
 		std::shared_ptr<const Enemy> shared_from_this() const;
 	
 	protected:
-		virtual void spawnBullets(TickContext&) = 0;
+		virtual void spawnBullets(Level&) = 0;
 	};
 
 
@@ -50,12 +50,12 @@ namespace hack_game {
 		bool spawnUnbreakable = false;
 
 	public:
-		Enemy1(DrawContext&, const glm::vec3& pos) noexcept;
+		Enemy1(ShaderManager&, const glm::vec3& pos) noexcept;
 		
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 
 	protected:
-		void spawnBullets(TickContext&) override;
+		void spawnBullets(Level&) override;
 	};
 }
 

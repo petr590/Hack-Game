@@ -1,16 +1,20 @@
 #include "main.h"
-#include "shader_loader.h"
-#include "context/draw_context.h"
+#include "shader/shader_loader.h"
+#include "shader/shader_manager.h"
 
 #include <GLFW/glfw3.h>
 
 namespace hack_game {
+	static bool profile = false;
+
 	static void parse_args(int argc, const char* argv[]) {
 		for (int i = 1; i < argc; i++) {
 			std::string arg = argv[i];
 
 			if (arg == "--lines") {
 				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			} else if (arg == "--profile") {
+				profile = true;
 			}
 		}
 	}
@@ -21,19 +25,18 @@ namespace hack_game {
 
 int main(int argc, const char* argv[]) {
 	using namespace hack_game;
-	using std::map;
 
 	try {
 		srand(time(nullptr));
 
-		const Initializer& initializer = Initializer::getInstance();
+		const WindowData& windowData = WindowData::getInstance();
 
 		parse_args(argc, argv);
 		
 
-		DrawContext drawContext {
-			initializer.getWindowWidth(),
-			initializer.getWindowHeight(),
+		ShaderManager shaderManager {
+			windowData.getWindowWidth(),
+			windowData.getWindowHeight(),
 			Shader("null"),
 			Shader("main",           createShaderProgram("main.vert",           "main.frag")),
 			Shader("light",          createShaderProgram("light.vert",          "light.frag")),
@@ -42,24 +45,13 @@ int main(int argc, const char* argv[]) {
 			ANIMATION_SHADER("enemyDestroyBillboard",  "textured-animation.vert", "enemy-destroy-billboard.frag"),
 			ANIMATION_SHADER("enemyDestroyFlat",       "animation.vert",          "enemy-destroy-flat.frag"),
 			ANIMATION_SHADER("particleCube",           "animation.vert",          "particle-cube.frag"),
-			ANIMATION_SHADER("minionDestroyBillboard", "animation.vert",          "minion-destroy-billboard.frag"),
+			ANIMATION_SHADER("minionDestroyBillboard", "textured-animation.vert", "minion-destroy-billboard.frag"),
 			ANIMATION_SHADER("minionDestroyFlat",      "animation.vert",          "minion-destroy-flat.frag"),
 			ANIMATION_SHADER("playerDamage",           "animation.vert",          "player-damage.frag"),
 		};
 
-		map<GLuint, Shader*> shaderById {
-			{ -1,                              &drawContext.nullShader  },
-			{ drawContext.mainShader.getId(),  &drawContext.mainShader  },
-		};
-
-		for (auto& entry : drawContext.getShaders()) {
-			shaderById[entry.second.getId()] = &entry.second;
-		}
-
 		onShadersLoaded();
-
-		TickContext tickContext	= createTickContext(drawContext);
-		mainLoop(initializer, drawContext.getShader("postprocessing"), tickContext, shaderById);
+		mainLoop(windowData, shaderManager, profile);
 
 		return 0;
 		

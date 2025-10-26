@@ -3,7 +3,7 @@
 
 #include "gl_fwd.h"
 #include <vector>
-#include <string_view>
+#include <string>
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -12,7 +12,7 @@ namespace hack_game {
 	class Shader {
 	public:
 		struct Uniform;
-		using uniforms_t = std::vector<std::pair<std::string_view, Uniform>>;
+		using uniforms_t = std::vector<std::pair<std::string, Uniform>>;
 
 	private:
 		const char* const name;

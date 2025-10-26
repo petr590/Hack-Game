@@ -2,8 +2,12 @@ uniform vec3 centerPos;
 uniform vec3 angleNormal;
 uniform float progress;
 uniform int seed;
+uniform sampler2D texture0;
+uniform sampler2D texture1;
+uniform sampler2D texture2;
 
 in vec3 fragPos;
+in vec2 fragTexCoord;
 
 out vec4 result;
 
@@ -16,7 +20,23 @@ const float LINE_MIN_LENGHT = 0.1;
 const float LINE_MAX_LENGHT = 0.25;
 const int LINE_COUNT = 6;
 
+const float FIG0_START = 0.7;
+const float FIG0_END   = 0.8;
+
+const float FIG1_START = 0.8;
+const float FIG1_END   = 0.9;
+
+const float FIG2_START = 0.9;
+const float FIG2_END   = 1.0;
+
 const float PI = radians(180.0);
+
+const float SIN_0 = sin(radians(0.0));
+const float COS_0 = cos(radians(0.0));
+
+const float SIN_45 = sin(radians(45.0));
+const float COS_45 = cos(radians(45.0));
+
 
 float randomBetween(float low, float high, int localSeed) {
 	return mix(low, high, simpleNoise(seed, localSeed));
@@ -73,6 +93,11 @@ void drawLines(float dist) {
 	}
 }
 
+void drawFigure(sampler2D tex, float angleSin, float angleCos) {
+	vec2 scaledTexCoord = rotate(fragTexCoord - 0.5, angleSin, angleCos) * 25.0 + 0.5;
+	result = blend(result, texture(tex, scaledTexCoord));
+}
+
 
 void main() {
 	result = vec4(0.0);
@@ -80,4 +105,14 @@ void main() {
 	float dist = distance(fragPos, centerPos);
 	drawRing(dist);
 	drawLines(dist);
+	
+	if (progress >= FIG0_START && progress <= FIG0_END) {
+		drawFigure(texture0, SIN_45, COS_45);
+		
+	} else if (progress >= FIG1_START && progress <= FIG1_END) {
+		drawFigure(texture1, SIN_0, COS_0);
+		
+	} else if (progress >= FIG2_START && progress <= FIG2_END) {
+		drawFigure(texture2, SIN_45, COS_45);
+	}
 }

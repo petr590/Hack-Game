@@ -1,6 +1,8 @@
 #include "menu_select.h"
 #include "imgui_util.h"
 #include "menu.h"
+#include "texture.h"
+#include "dir_paths.h"
 #include <string>
 #include <cmath>
 
@@ -14,6 +16,8 @@ namespace hack_game {
 
 	using Selectable = MenuSelect::Selectable;
 
+	#define TEXTURE "pointer.png"
+
 
 	static constexpr ImVec4 TRANSPARENT = {0, 0, 0, 0};
 
@@ -24,6 +28,9 @@ namespace hack_game {
 	static constexpr ImU32 BAR_COLOR        = colorAsImU32(0xFF'AEAA92);
 	static constexpr ImU32 BAR_STRIPE_COLOR = colorAsImU32(0xFF'908B78);
 
+	static constexpr ImVec2 POINTER_TEXTURE_SIZE = {45, 45};
+	static constexpr float POINTER_TEXTURE_OFFSET_X = 4;
+
 	static constexpr ImVec2 PANEL_START = MARGIN;
 	static constexpr ImVec2 PANEL_END = MARGIN + SIZE;
 
@@ -31,7 +38,7 @@ namespace hack_game {
 	static constexpr float SCROLLBAR_WIDTH     = 6;
 	static constexpr float SCROLLBAR_PADDING_X = 21;
 
-	static constexpr ImVec2 TOP_LEFT_PADDING = {BAR_SIZE.x, 20};
+	static constexpr ImVec2 TOP_LEFT_PADDING = {0, 20};
 	static constexpr ImVec2 BOTTOM_RIGHT_PADDING = {SCROLLBAR_PADDING_X * 2 + SCROLLBAR_WIDTH, 21};
 
 	static constexpr float STRIPE_HEIGHT           = 2;
@@ -46,19 +53,27 @@ namespace hack_game {
 
 	class MenuSelect::Selectable {
 		const string label;
+		const string path;
 		float time;
 	
 	public:
 		Selectable(size_t num, bool isSelected):
 				label("\t  Мини-игра по взлому #" + to_string(num)),
+				path(string(LEVELS_DIR "level") + to_string(num) + ".json"),
 				time(isSelected ? 1.0f : 0.0f) {}
 		
+		const string& getLabel() const noexcept { return label; }
+		const string& getPath() const noexcept { return path; }
+		float getTime() const noexcept { return time; }
 
-		bool draw(const GuiContext&, const ImVec2& region, bool isSelected);
+		bool draw(const GuiContext&, Menu&, const ImVec2& region, GLuint pointerTextureId, bool isSelected);
 	};
 
 
-	MenuSelect::MenuSelect(size_t count) noexcept {
+	MenuSelect::MenuSelect(Menu& menu, size_t count) noexcept:
+			menu(menu),
+			pointerTextureId(Texture(TEXTURES_DIR TEXTURE).genGlTexture()) {
+		
 		selectables.reserve(count);
 
 		for (size_t i = 0; i < count; i++) {
@@ -71,31 +86,15 @@ namespace hack_game {
 
 	void MenuSelect::draw(const GuiContext& context) {
 
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-
 		constexpr float OFFSET = Menu::SHADOW_OFFSET;
-		drawList->AddRectFilled(context.scaleVec(PANEL_START + OFFSET), context.scaleVec(PANEL_END + OFFSET), Menu::SHADOW_COLOR);
-		drawList->AddRectFilled(context.scaleVec(PANEL_START),          context.scaleVec(PANEL_END),          Menu::PANEL_COLOR);
-
-		drawList->AddRectFilled(context.scaleVec(PANEL_START), context.scaleVec(PANEL_START + BAR_SIZE), BAR_COLOR);
-
-		drawList->AddRectFilled(
-			context.scaleVec(PANEL_START.x + Menu::STRIPE1_START, PANEL_START.y),
-			context.scaleVec(PANEL_START.x + Menu::STRIPE1_END,   PANEL_END.y),
-			BAR_STRIPE_COLOR
-		);
-
-		drawList->AddRectFilled(
-			context.scaleVec(PANEL_START.x + Menu::STRIPE2_START, PANEL_START.y),
-			context.scaleVec(PANEL_START.x + Menu::STRIPE2_END,   PANEL_END.y),
-			BAR_STRIPE_COLOR
-		);
+		AddRectFilledScaled(PANEL_START + OFFSET, PANEL_END + OFFSET, Menu::SHADOW_COLOR);
+		AddRectFilledScaled(PANEL_START,          PANEL_END,          Menu::PANEL_COLOR);
 
 		drawContent(context);
 	}
 
-	static void drawScrollbar(const GuiContext& context, float regionY, float scrollY, float maxScrollY);
-	static void drawDecorations(const GuiContext& context);
+	static void drawScrollbar(float regionY, float scrollY, float maxScrollY);
+	static void drawDecorations();
 
 	void MenuSelect::drawContent(const GuiContext& context) {
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0)); // Убрать лишние отступы
@@ -110,6 +109,7 @@ namespace hack_game {
 		ImGui::SetCursorPos(context.scaleVec(selectStart));
 		ImGui::BeginChild("MenuSelectContent", context.scaleVec(selectSize), ImGuiChildFlags_None, ImGuiWindowFlags_NoScrollbar);
 
+		ImGui::Indent(context.scaleX(BAR_SIZE.x));
 		ImGui::SetItemAllowOverlap(); // Отключить рамку при фокусе на Child
 
 		const size_t count = selectables.size();
@@ -120,7 +120,7 @@ namespace hack_game {
 		const ImVec2 region = ImGui::GetContentRegionAvail();
 
 		for (size_t i = 0; i < count; i++) {
-			bool isSelected = selectables[i].draw(context, region, i == selected);
+			bool isSelected = selectables[i].draw(context, menu, region, pointerTextureId, i == selected);
 
 			if (isSelected) {
 				selected = i;
@@ -132,16 +132,17 @@ namespace hack_game {
 		const float scrollY = ImGui::GetScrollY();
 		const float maxScrollY = ImGui::GetScrollMaxY();
 
+		ImGui::Unindent(context.scaleX(BAR_SIZE.x));
 		ImGui::EndChild();
 		ImGui::PopStyleColor(4);
 		ImGui::PopStyleVar();
 
-		drawScrollbar(context, region.y, scrollY, maxScrollY);
-		drawDecorations(context);
+		drawScrollbar(region.y, scrollY, maxScrollY);
+		drawDecorations();
 	}
 
 
-	static void drawScrollbar(const GuiContext& context, float regionY, float scrollY, float maxScrollY) {
+	static void drawScrollbar(float regionY, float scrollY, float maxScrollY) {
 		const float scrollbarHeight = regionY * regionY / maxScrollY;
 		const float scrollbarY = (regionY - scrollbarHeight) * scrollY / maxScrollY;
 
@@ -150,15 +151,15 @@ namespace hack_game {
 				PANEL_START.y + TOP_LEFT_PADDING.y + scrollbarY
 		};
 
-		ImGui::GetWindowDrawList()->AddRectFilled(
-				context.scaleVec(start),
-				context.scaleVec(start + ImVec2(SCROLLBAR_WIDTH, scrollbarHeight)),
+		AddRectFilledScaled(
+				start,
+				start + ImVec2(SCROLLBAR_WIDTH, scrollbarHeight),
 				Menu::SELECTION_COLOR
 		);
 	}
 
 
-	static void drawDecorations(const GuiContext& context) {
+	static void drawDecorations() {
 		constexpr ImVec2 stripe1Start = PANEL_START + TOP_LEFT_PADDING * ImVec2(1.0f, 0.5f) + ImVec2(STRIPE_OFFSET_X, -0.5f * STRIPE_HEIGHT);
 		constexpr ImVec2 stripe1Size = {PANEL_END.x - PANEL_START.x - TOP_LEFT_PADDING.x - BOTTOM_RIGHT_PADDING.x - STRIPE_OFFSET_X * 2, STRIPE_HEIGHT};
 		constexpr ImVec2 stripe2Offset = {0, PANEL_END.y - PANEL_START.y - TOP_LEFT_PADDING.y};
@@ -167,28 +168,43 @@ namespace hack_game {
 				stripe1Start.y - 0.5f * (SCROLLBAR_WIDTH - STRIPE_HEIGHT)
 		};
 
-		ImGui::GetWindowDrawList()->AddRectFilled( // stripe 1
-				context.scaleVec(stripe1Start),
-				context.scaleVec(stripe1Start + stripe1Size),
+		AddRectFilledScaled( // stripe 1
+				stripe1Start,
+				stripe1Start + stripe1Size,
 				BAR_STRIPE_COLOR
 		);
 
-		ImGui::GetWindowDrawList()->AddRectFilled( // stripe 2
-				context.scaleVec(stripe1Start + stripe2Offset),
-				context.scaleVec(stripe1Start + stripe2Offset + stripe1Size),
+		AddRectFilledScaled( // stripe 2
+				stripe1Start + stripe2Offset,
+				stripe1Start + stripe2Offset + stripe1Size,
 				BAR_STRIPE_COLOR
 		);
 
-		ImGui::GetWindowDrawList()->AddRectFilled( // square 1
-				context.scaleVec(square1Start),
-				context.scaleVec(square1Start + SCROLLBAR_WIDTH),
+		AddRectFilledScaled( // square 1
+				square1Start,
+				square1Start + SCROLLBAR_WIDTH,
 				BAR_STRIPE_COLOR
 		);
 
-		ImGui::GetWindowDrawList()->AddRectFilled( // square 2
-				context.scaleVec(square1Start + stripe2Offset),
-				context.scaleVec(square1Start + stripe2Offset + SCROLLBAR_WIDTH),
+		AddRectFilledScaled( // square 2
+				square1Start + stripe2Offset,
+				square1Start + stripe2Offset + SCROLLBAR_WIDTH,
 				BAR_STRIPE_COLOR
+		);
+
+
+		AddRectFilledScaled(PANEL_START, PANEL_START + BAR_SIZE, BAR_COLOR);
+
+		AddRectFilledScaled(
+			ImVec2(PANEL_START.x + Menu::STRIPE1_START, PANEL_START.y),
+			ImVec2(PANEL_START.x + Menu::STRIPE1_END,   PANEL_END.y),
+			BAR_STRIPE_COLOR
+		);
+
+		AddRectFilledScaled(
+			ImVec2(PANEL_START.x + Menu::STRIPE2_START, PANEL_START.y),
+			ImVec2(PANEL_START.x + Menu::STRIPE2_END,   PANEL_END.y),
+			BAR_STRIPE_COLOR
 		);
 	}
 
@@ -207,12 +223,12 @@ namespace hack_game {
 	}
 
 
-	static void drawAnimatedSelectable(const GuiContext& context, const ImVec2& region, bool isSelected, float time, const char* label);
-	static bool drawPlainSelectable(const GuiContext& context, bool isSelected, const char* label);
-	static void drawSquare(const GuiContext& context, float textHeight, const ImVec4& textColor);
+	static void drawAnimatedSelectable(const GuiContext&, Menu&, const Selectable&, bool isSelected, const ImVec2& region, GLuint pointerTextureId);
+	static bool drawPlainSelectable(const GuiContext&, Menu&, const Selectable&, bool isSelected);
+	static void drawSquare(const GuiContext&, float textHeight, const ImVec4& textColor);
 
 
-	bool MenuSelect::Selectable::draw(const GuiContext& context, const ImVec2& region, bool isSelected) {
+	bool MenuSelect::Selectable::draw(const GuiContext& context, Menu& menu, const ImVec2& region, GLuint pointerTextureId, bool isSelected) {
 		if (isSelected) {
 			time = min(time + context.getDeltaTime(), SELECT_ANIMATION_TIME);
 		} else {
@@ -220,18 +236,17 @@ namespace hack_game {
 		}
 
 		if (time > 0) {
-			drawAnimatedSelectable(context, region, isSelected, time, label.c_str());
+			drawAnimatedSelectable(context, menu, *this, isSelected, region, pointerTextureId);
 			return false;
 		}
 
-		return drawPlainSelectable(context, isSelected, label.c_str());
+		return drawPlainSelectable(context, menu, *this, isSelected);
 	}
 
 
-	static void drawAnimatedSelectable(const GuiContext& context, const ImVec2& region, bool isSelected, float time, const char* label) {
-		// variables
-		const float progress = time / SELECT_ANIMATION_TIME;
-		const float fadeProgress = clamp(time / SELECT_FADE_TIME, 0.0f, 1.0f);
+	static void drawAnimatedSelectable(const GuiContext& context, Menu& menu, const Selectable& selectable, bool isSelected, const ImVec2& region, GLuint pointerTextureId) {
+		const float progress = selectable.getTime() / SELECT_ANIMATION_TIME;
+		const float fadeProgress = clamp(selectable.getTime() / SELECT_FADE_TIME, 0.0f, 1.0f);
 
 		const ImVec4 stripeColor = alpha(ImGui::ColorConvertU32ToFloat4(Menu::SELECTION_COLOR), fadeProgress);
 		const ImVec4 textColor = mix(ImGui::GetStyleColorVec4(ImGuiCol_Text), ImGui::ColorConvertU32ToFloat4(Menu::SELECTION_TEXT_COLOR), fadeProgress);
@@ -241,7 +256,7 @@ namespace hack_game {
 
 		const ImVec2 padding = context.scaleY(0, STRIPE_HEIGHT + SELECTABLE_MARGIN_Y);
 		const ImVec2 stripeSize = context.scaleY(region.x, STRIPE_HEIGHT);
-		const float textHeight = ImGui::CalcTextSize(label, nullptr, true).y;
+		const float textHeight = ImGui::CalcTextSize(selectable.getLabel().c_str(), nullptr, true).y;
 		const ImVec2 rectSize = {
 				rectX * (ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x),
 				textHeight + context.scaleY(SELECTABLE_PADDING_XY * 2)
@@ -249,7 +264,6 @@ namespace hack_game {
 
 		const float top = ImGui::GetCursorPosY();
 
-		// draw
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		
 		drawList->AddRectFilled( // stripe
@@ -266,11 +280,20 @@ namespace hack_game {
 				Menu::SELECTION_COLOR
 		);
 
+		const ImVec2 pos = ImGui::GetCursorPos();
+		ImGui::SetCursorPosX(pos.x - context.scaleX(BAR_SIZE.x - POINTER_TEXTURE_OFFSET_X));
+		ImGui::Image(pointerTextureId, context.scaleVec(POINTER_TEXTURE_SIZE), ImVec2(0, 0), ImVec2(1, 1), ImVec4(1, 1, 1, fadeProgress), TRANSPARENT);
+		ImGui::SetCursorPos(pos);
+
 		ImGui::Dummy(context.scaleY(0, SELECTABLE_PADDING_XY));
 
 		ImGui::PushStyleColor(ImGuiCol_Text, textColor);
-		ImGui::Selectable(label, true);
+		const bool clicked = ImGui::Selectable(selectable.getLabel().c_str(), true);
 		ImGui::PopStyleColor();
+
+		if (clicked || ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+			menu.loadLevel(selectable.getPath());
+		}
 
 		drawSquare(context, textHeight, textColor);
 
@@ -294,18 +317,22 @@ namespace hack_game {
 	}
 
 
-	static bool drawPlainSelectable(const GuiContext& context, bool isSelected, const char* label) {
+	static bool drawPlainSelectable(const GuiContext& context, Menu& menu, const Selectable& selectable, bool isSelected) {
 		const ImVec2 padding = context.scaleY(0, STRIPE_HEIGHT + SELECTABLE_MARGIN_Y + SELECTABLE_PADDING_XY);
 
 		ImGui::Dummy(padding);
 
-		bool clicked = ImGui::Selectable(label, false);
+		const bool clicked = ImGui::Selectable(selectable.getLabel().c_str(), false);
+
+		if (clicked) {
+			menu.loadLevel(selectable.getPath());
+		}
 
 		if (clicked || ImGui::IsItemHovered()) {
 			isSelected = true;
 		}
 
-		drawSquare(context, ImGui::CalcTextSize(label, nullptr, true).y, ImGui::GetStyleColorVec4(ImGuiCol_Text));
+		drawSquare(context, ImGui::CalcTextSize(selectable.getLabel().c_str(), nullptr, true).y, ImGui::GetStyleColorVec4(ImGuiCol_Text));
 
 		ImGui::Dummy(padding);
 		return isSelected;

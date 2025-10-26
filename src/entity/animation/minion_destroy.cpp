@@ -2,8 +2,8 @@
 #include "entity/player.h"
 #include "entity/entity_with_pos.h"
 #include "model/models.h"
-#include "context/draw_context.h"
-#include "context/tick_context.h"
+#include "shader/shader_manager.h"
+#include "level/level.h"
 #include "cube_particle_mode.h"
 #include "util.h"
 
@@ -19,7 +19,7 @@ namespace hack_game {
 	using Cube = MinionDestroyAnimation::Cube;
 
 
-	static const float DURATION = 0.35f * 5; // DEBUG
+	static const float DURATION = 0.35f;
 	static const float SIZE     = 1.0f;
 	static const float Y_OFFSET = 0.5f * TILE_SIZE;
 
@@ -64,14 +64,19 @@ namespace hack_game {
 			return parent.particleShader.getId();
 		}
 
-		void tick(TickContext& context) override {
-			offset += speed * context.getDeltaTime();
+		void tick(Level& level) override {
+			offset += speed * level.getDeltaTime();
+		}
+
+		bool isTransparent() const noexcept override {
+			return true;
 		}
 
 		void draw() const override {
 			Shader& shader = parent.particleShader;
 			shader.setModel(getModelTransform());
-			shader.setUniform("mode", static_cast<GLuint>(Mode::SOLID));
+			shader.setUniform("alpha", std::min(1.0f, 2.0f - parent.time * (2.0f / DURATION)));
+			shader.setUniform("mode", static_cast<GLuint>(Mode::FADING));
 
 			const Model& model = isFrame ? models::cubeFrame : models::blackCube;
 			model.draw(shader);
@@ -79,12 +84,14 @@ namespace hack_game {
 	};
 
 
-	MinionDestroyAnimation::MinionDestroyAnimation(shared_ptr<const EntityWithPos>&& entity, TickContext& tickContext, DrawContext& drawContext) noexcept:
-			BillboardAnimation(std::move(entity), drawContext.nullShader, DURATION, SIZE, Y_OFFSET),
-			billboardShader (drawContext.getShader("minionDestroyBillboard")),
-			flatShader      (drawContext.getShader("minionDestroyFlat")),
-			particleShader  (drawContext.getShader("particleCube")),
+	MinionDestroyAnimation::MinionDestroyAnimation(shared_ptr<const EntityWithPos>&& entity, Level& level, ShaderManager& shaderManager) noexcept:
+			BillboardAnimation(std::move(entity), shaderManager.nullShader, DURATION, SIZE, Y_OFFSET, models::minionDestroyBillboard),
+			billboardShader (shaderManager.getShader("minionDestroyBillboard")),
+			flatShader      (shaderManager.getShader("minionDestroyFlat")),
+			particleShader  (shaderManager.getShader("particleCube")),
+			angleNormal     (0.0f, 1.0f, 0.0f),
 			seed            (randomInt32()) {
+		
 
 		cubes.reserve(MAX_CUBES);
 
@@ -102,7 +109,7 @@ namespace hack_game {
 			const vec3 offset = vec3(0.0f, TILE_SIZE, 0.0f) + glm::rotate(vec3(distance, 0.0f, 0.0f), angle, vec3(0.0f, 1.0f, 0.0f));
 
 			auto cube = make_shared<Cube>(*this, offset, speed, scale, isFrame);
-			tickContext.addEntity(cube);
+			level.addEntity(cube);
 			cubes.push_back(std::move(cube));
 		}
 	}
@@ -110,16 +117,16 @@ namespace hack_game {
 	MinionDestroyAnimation::~MinionDestroyAnimation() noexcept {}
 
 
-	void MinionDestroyAnimation::tick(TickContext& context) {
-		BillboardAnimation::tick(context);
+	void MinionDestroyAnimation::tick(Level& level) {
+		BillboardAnimation::tick(level);
 
-		const Camera& camera = context.player->getCamera();
+		const Camera& camera = level.getPlayer()->getCamera();
 		angleNormal = glm::rotate(glm::normalize(camera.getPos() - camera.getTarget()), glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
 	}
 
-	void MinionDestroyAnimation::onRemove(TickContext& context) {
+	void MinionDestroyAnimation::onRemove(Level& level) {
 		for (const shared_ptr<Cube>& cube : cubes) {
-			context.removeEntity(cube);
+			level.removeEntity(cube);
 		}
 	}
 

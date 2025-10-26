@@ -6,7 +6,7 @@
 #include <glm/vec3.hpp>
 
 namespace hack_game {
-	class DrawContext;
+	class ShaderManager;
 
 	GLuint createShaderProgram(const char* vertexShaderPath, const char* fragmentShaderPath);
 	GLuint createAnimationShaderProgram(const char* vertexShaderName, const char* fragmentShaderName);

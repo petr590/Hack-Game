@@ -1,4 +1,5 @@
 #include "shader.h"
+#include <string_view>
 #include <iostream>
 #include <stdexcept>
 #include <functional>
@@ -9,6 +10,7 @@
 namespace hack_game {
 	using std::cerr;
 	using std::endl;
+	using std::string;
 	using std::string_view;
 	using std::function;
 
@@ -48,7 +50,7 @@ namespace hack_game {
 			GLenum type;
 			
 			glGetActiveUniform(id, static_cast<GLuint>(i), maxNameLen, &nameLen, &size, &type, name);
-			uniforms.emplace_back(string_view(strdup(name)), Uniform(i, type));
+			uniforms.emplace_back(string(name), Uniform(i, type));
 		}
 
 		assert(uniforms.size() == static_cast<size_t>(count));

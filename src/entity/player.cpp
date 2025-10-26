@@ -3,8 +3,8 @@
 #include "bullet.h"
 #include "animation/player_damage.h"
 #include "model/models.h"
-#include "context/draw_context.h"
-#include "context/tick_context.h"
+#include "shader/shader_manager.h"
+#include "level/level.h"
 #include "scancodes.h"
 #include "globals.h"
 #include "util.h"
@@ -19,7 +19,6 @@ namespace hack_game {
 	using std::max;
 	using std::min;
 	using std::clamp;
-	using std::pow;
 	using std::sqrt;
 	using std::isnan;
 	using std::make_shared;
@@ -40,18 +39,18 @@ namespace hack_game {
 
 	// ------------------------------------------ Player ------------------------------------------
 
-	Player::Player(DrawContext& drawContext, const Camera& camera, float speed):
+	Player::Player(ShaderManager& shaderManager, const Camera& camera, float speed, const glm::vec3& pos):
 			Damageable(Side::PLAYER, 3),
-			drawContext(drawContext),
+			shaderManager(shaderManager),
 			camera(camera),
 			speed(speed),
-			pos(TILE_SIZE * 8, 0.0f, TILE_SIZE * 8) {
+			pos(pos) {
 		
 		this->camera.move(pos);
 	}
 
 	GLuint Player::getShaderProgram() const noexcept {
-		return drawContext.mainShader.getId();
+		return shaderManager.mainShader.getId();
 	}
 
 	std::shared_ptr<const Player> Player::shared_from_this() const {
@@ -109,7 +108,7 @@ namespace hack_game {
 		if (offset.x == 0) {
 			const float A = 1;
 			const float B = -2 * cy;
-			const float C = pow(pos.x - cx, 2) + cy*cy - radius*radius;
+			const float C = powf(pos.x - cx, 2) + cy*cy - radius*radius;
 
 			const float D = B*B - 4*A*C;
 			if (D < 0) {
@@ -139,7 +138,7 @@ namespace hack_game {
 
 		const float A = a*a + 1;
 		const float B = 2 * (a * (b - cy) - cx);
-		const float C = pow(b - cy, 2) + cx*cx - radius*radius;
+		const float C = powf(b - cy, 2) + cx*cx - radius*radius;
 
 		const float D = B*B - 4*A*C;
 		if (D < 0) {
@@ -185,18 +184,18 @@ namespace hack_game {
 	static_assert(all_isnan(getIntersectPoint(vec2(1, 1), vec2(2, 2), vec2(0, 0), 1)));
 
 
-	static constexpr vec2 vec3ToVec2(const vec3& pos) {
+	static constexpr vec2 getXZ(const vec3& pos) {
 		return vec2(pos.x, pos.z);
 	}
 
-	static vec2 resolveEnemyCollision(const TickContext& context, const vec2& pos, vec2 offset) {
-		if (context.enemy->destroyed()) {
+	static vec2 resolveEnemyCollision(const Level& level, const vec2& pos, vec2 offset) {
+		if (level.getEnemy()->destroyed()) {
 			return offset;
 		}
 
 		const vec2 newPos = pos + offset;
 
-		const vec2 enemyPos = vec3ToVec2(context.enemy->getPos());
+		const vec2 enemyPos = getXZ(level.getEnemy()->getPos());
 		const vec2 diff = newPos - enemyPos;
 
 		const float DIST = Enemy::RADIUS + PAD;
@@ -213,13 +212,13 @@ namespace hack_game {
 	}
 
 
-	static vec2 moveWithCollisions(const TickContext& context, const vec2& pos, vec2 offset) {
-		offset = resolveBlockCollision(context, pos, offset);
-		return resolveEnemyCollision(context, pos, offset);
+	static vec2 moveWithCollisions(const Level& level, const vec2& pos, vec2 offset) {
+		offset = resolveBlockCollision(level, pos, offset);
+		return resolveEnemyCollision(level, pos, offset);
 	}
 
 
-	void Player::move(TickContext& context) {
+	void Player::move(Level& level) {
 		vec2 offset(
 			left ? -1 : right ? 1 : 0,
 			up ? -1 : down ? 1 : 0
@@ -227,16 +226,16 @@ namespace hack_game {
 
 		if (offset.x == 0 && offset.y == 0) return;
 
-		offset = glm::normalize(offset) * (speed * context.getDeltaTime());
-		offset = moveWithCollisions(context, vec2(pos.x, pos.z), offset);
+		offset = glm::normalize(offset) * (speed * level.getDeltaTime());
+		offset = moveWithCollisions(level, getXZ(pos), offset);
 
 		vec3 offset3d(offset.x, 0.0f, offset.y);
 		pos += offset3d;
 
 		vec3 oldPos = pos;
 
-		const float endX = context.map.width() * TILE_SIZE;
-		const float endZ = context.map.height() * TILE_SIZE;
+		const float endX = level.map.width() * TILE_SIZE;
+		const float endZ = level.map.height() * TILE_SIZE;
 
 		pos = glm::clamp(pos,
 				vec3(       PAD, -INFINITY,        PAD),
@@ -248,11 +247,11 @@ namespace hack_game {
 	}
 
 
-	void Player::tick(TickContext& context) {
-		move(context);
+	void Player::tick(Level& level) {
+		move(level);
 
 		if (angle != targetAngle) {
-			float delta = glm::radians(ROTATE_SPEED) * context.getDeltaTime();
+			float delta = glm::radians(ROTATE_SPEED) * level.getDeltaTime();
 
 			if (angle > targetAngle) {
 				angle = max(angle - delta, targetAngle);
@@ -261,7 +260,7 @@ namespace hack_game {
 			}
 		}
 
-		timeSinceLastBullet += context.getDeltaTime();
+		timeSinceLastBullet += level.getDeltaTime();
 
 		if (fire && timeSinceLastBullet >= BULLET_PERIOD) {
 			timeSinceLastBullet = fmodf(timeSinceLastBullet, BULLET_PERIOD);
@@ -270,8 +269,8 @@ namespace hack_game {
 			vec3 velocity = rotateQuat * vec3(0.0f, 0.0f, -1.0f) * BULLET_SPEED;
 			vec3 bulletPos = pos + velocity * (TILE_SIZE * 0.5f);
 
-			context.addEntity(make_shared<PlayerBullet>(
-				drawContext.getShader("light"), angle, velocity, bulletPos
+			level.addEntity(make_shared<PlayerBullet>(
+				shaderManager.getShader("light"), angle, velocity, bulletPos
 			));
 		}
 	}
@@ -289,7 +288,7 @@ namespace hack_game {
 		modelMat = translate(modelMat, pos);
 		modelMat = rotate(modelMat, angle, vec3(0.0f, 1.0f, 0.0f));
 
-		Shader& mainShader = drawContext.mainShader;
+		Shader& mainShader = shaderManager.mainShader;
 
 		mainShader.setModel(modelMat);
 
@@ -311,17 +310,17 @@ namespace hack_game {
 
 	// ------------------------------------------ damage ------------------------------------------
 
-	void Player::damage(TickContext& context, hp_t damage) {
-		Damageable::damage(context, damage);
+	void Player::damage(Level& level, hp_t damage) {
+		Damageable::damage(level, damage);
 
 		if (!destroyed() && (animation == nullptr || animation->isFinished())) {
-			animation = make_shared<PlayerDamageAnimation>(std::move(shared_from_this()), drawContext);
-			context.addEntity(animation);
+			animation = make_shared<PlayerDamageAnimation>(std::move(shared_from_this()), shaderManager);
+			level.addEntity(animation);
 		}
 	}
 
 
-	void Player::onDestroy(TickContext&) {
+	void Player::onDestroy(Level&) {
 		playerDestroyed = true;
 	}
 }

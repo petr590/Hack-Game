@@ -6,7 +6,7 @@
 
 namespace hack_game {
 
-	class TickContext;
+	class Level;
 
 
 	/// Вектор нормали угла в 2d. От него сичитается угол
@@ -57,12 +57,12 @@ namespace hack_game {
 
 	/**
 	 * Разрешает коллизию точки с блоками на карте
-	 * @param context контекст для получения блока
+	 * @param level уровень для получения блока
 	 * @param pos позиция точки на плоскости
 	 * @param offset смещение точки
 	 * @return Новое смещение
 	 */
-	glm::vec2 resolveBlockCollision(const TickContext& context, const glm::vec2& pos, glm::vec2 offset);
+	glm::vec2 resolveBlockCollision(const Level& level, const glm::vec2& pos, glm::vec2 offset);
 
 
 	/**

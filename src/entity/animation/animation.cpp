@@ -2,8 +2,8 @@
 #include "entity/enemy.h"
 #include "entity/player.h"
 #include "entity/entity_with_pos.h"
-#include "context/shader.h"
-#include "context/tick_context.h"
+#include "shader/shader.h"
+#include "level/level.h"
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace hack_game {
@@ -19,12 +19,12 @@ namespace hack_game {
 			SimpleEntity(shader, model), entity(move(entity)), size(size), duration(duration), yOffset(yOffset) {}
 	
 
-	void Animation::tick(TickContext& context) {
-		time += context.getDeltaTime();
+	void Animation::tick(Level& level) {
+		time += level.getDeltaTime();
 
 		if (time >= duration) {
-			context.removeEntity(shared_from_this());
-			onRemove(context);
+			level.removeEntity(shared_from_this());
+			onRemove(level);
 		}
 	}
 

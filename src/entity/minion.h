@@ -8,13 +8,13 @@
 namespace hack_game {
 
 	class Minion: public SimpleEntity, public Damageable, public EntityWithPos {
-		DrawContext& drawContext;
+		ShaderManager& shaderManager;
 		glm::vec3 pos;
 		float angle = 0;
 		float time = 0;
 
 	public:
-		Minion(DrawContext&, const glm::vec3& pos) noexcept;
+		Minion(ShaderManager&, const glm::vec3& pos) noexcept;
 
 		const glm::vec3& getPos() const noexcept override {
 			return pos;
@@ -22,12 +22,12 @@ namespace hack_game {
 
 		std::shared_ptr<const Minion> shared_from_this() const;
 
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		glm::mat4 getModelTransform() const override;
 		bool hasCollision(const glm::vec3& point) const override;
 	
 	protected:
-		void onDestroy(TickContext&) override;
+		void onDestroy(Level&) override;
 	};
 }
 

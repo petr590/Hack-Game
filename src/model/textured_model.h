@@ -6,14 +6,15 @@
 
 namespace hack_game {
 
+	class Texture;
+
 	class TexturedModel: public VAOModel {
 	public:
-		struct Image;
 		struct Vertex;
 
 	private:
-		std::vector<Image> images;
-		std::vector<GLuint> textures;
+		std::vector<Texture> textures;
+		std::vector<GLuint> textureIds;
 		std::vector<Vertex> vertices;
 
 	public:

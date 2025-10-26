@@ -4,8 +4,8 @@
 #include "animation/enemy_damage.h"
 #include "animation/enemy_destroy.h"
 #include "model/models.h"
-#include "context/draw_context.h"
-#include "context/tick_context.h"
+#include "shader/shader_manager.h"
+#include "level/level.h"
 #include "globals.h"
 #include "util.h"
 
@@ -27,10 +27,10 @@ namespace hack_game {
 	static const float BRIGHT_DURATION = 0.04f;
 
 
-	Enemy::Enemy(DrawContext& drawContext, float bulletSpawnPeriod, const vec3& pos) noexcept:
-			SimpleEntity(drawContext.mainShader, models::sphere),
+	Enemy::Enemy(ShaderManager& shaderManager, float bulletSpawnPeriod, const vec3& pos) noexcept:
+			SimpleEntity(shaderManager.mainShader, models::sphere),
 			Damageable(Side::ENEMY, 7),
-			drawContext(drawContext),
+			shaderManager(shaderManager),
 			coloredModel(models::sphere),
 			bulletSpawnPeriod(bulletSpawnPeriod),
 			pos(pos) {}
@@ -45,30 +45,30 @@ namespace hack_game {
 	}
 
 
-	void Enemy::damage(TickContext& context, hp_t damage) {
-		Damageable::damage(context, damage);
+	void Enemy::damage(Level& level, hp_t damage) {
+		Damageable::damage(level, damage);
 
 		if (destroyed()) {
 			enemyDestroyed = true;
 
-			animation = make_shared<EnemyDestroyAnimation>(std::move(shared_from_this()), drawContext);
-			context.addEntity(animation);
-			context.removeEntity(shared_entity::shared_from_this());
+			animation = make_shared<EnemyDestroyAnimation>(std::move(shared_from_this()), shaderManager);
+			level.addEntity(animation);
+			level.removeEntity(shared_entity::shared_from_this());
 
 		} else if (animation == nullptr || animation->isFinished()) {
 
-			animation = make_shared<EnemyDamageAnimation>(std::move(shared_from_this()), drawContext);
-			context.addEntity(animation);
+			animation = make_shared<EnemyDamageAnimation>(std::move(shared_from_this()), shaderManager);
+			level.addEntity(animation);
 		}
 	}
 
-	void Enemy::tick(TickContext& context) {
-		time += context.getDeltaTime();
+	void Enemy::tick(Level& level) {
+		time += level.getDeltaTime();
 
 		if (time >= bulletSpawnPeriod) {
 			time -= bulletSpawnPeriod;
 
-			// spawnBullets(context); // DEBUG
+			// spawnBullets(level); // DEBUG
 		}
 	}
 
@@ -94,29 +94,29 @@ namespace hack_game {
 
 	static const float ROTATE_PER_SEC = glm::radians(45.0f);
 
-	Enemy1::Enemy1(DrawContext& drawContext, const vec3& pos) noexcept:
-			Enemy(drawContext, 0.5f, pos) {}
+	Enemy1::Enemy1(ShaderManager& shaderManager, const vec3& pos) noexcept:
+			Enemy(shaderManager, 0.5f, pos) {}
 	
 	
-	void Enemy1::tick(TickContext& context) {
-		float targetAngle = horizontalAngleBetween(pos, context.player->getPos());
+	void Enemy1::tick(Level& level) {
+		float targetAngle = horizontalAngleBetween(pos, level.getPlayer()->getPos());
 
 		if (!isnan(targetAngle)) {
 			angle += clamp(targetAngle - angle, -ROTATE_PER_SEC, ROTATE_PER_SEC);
 		}
 
-		Enemy::tick(context);
+		Enemy::tick(level);
 	}
 
 
-	void Enemy1::spawnBullets(TickContext& context) {
+	void Enemy1::spawnBullets(Level& level) {
 		vec2 velocity0 = ANGLE_NORMAL * EnemyBullet::DEFAULT_SPEED;
 
 		for (int i = 0; i < 5; i++) {
 			vec2 velocity = glm::rotate(velocity0, angle + glm::radians(-90.0f + i * 45));
 
-			context.addEntity(make_shared<EnemyBullet>(
-				drawContext.getShader("light"), spawnUnbreakable, vec3(velocity.x, 0.0f, velocity.y), pos
+			level.addEntity(make_shared<EnemyBullet>(
+				shaderManager.getShader("light"), spawnUnbreakable, vec3(velocity.x, 0.0f, velocity.y), pos
 			));
 		}
 

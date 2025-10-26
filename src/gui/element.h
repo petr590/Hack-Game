@@ -1,7 +1,7 @@
 #ifndef HACK_GAME__GUI__ELEMENT_H
 #define HACK_GAME__GUI__ELEMENT_H
 
-#include "context/gui_context.h"
+#include "gui_context.h"
 
 namespace hack_game {
 

@@ -19,14 +19,14 @@ namespace hack_game {
 		int32_t seed;
 
 	public:
-		MinionDestroyAnimation(std::shared_ptr<const EntityWithPos>&&, TickContext&, DrawContext&) noexcept;
+		MinionDestroyAnimation(std::shared_ptr<const EntityWithPos>&&, Level&, ShaderManager&) noexcept;
 		~MinionDestroyAnimation() noexcept;
 
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		void draw() const override;
 	
 	protected:
-		void onRemove(TickContext&) override;
+		void onRemove(Level&) override;
 	};
 }
 

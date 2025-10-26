@@ -8,8 +8,8 @@ namespace hack_game {
 
 	class Model;
 	class Shader;
-	class DrawContext;
-	class TickContext;
+	class ShaderManager;
+	class Level;
 
 	class Entity {
 	protected:
@@ -19,7 +19,7 @@ namespace hack_game {
 		virtual ~Entity() = default;
 
 		virtual GLuint getShaderProgram() const noexcept = 0;
-		virtual void tick(TickContext&) = 0;
+		virtual void tick(Level&) = 0;
 		virtual void draw() const = 0;
 
 		virtual bool isTransparent() const noexcept {

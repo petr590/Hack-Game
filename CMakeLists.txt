@@ -58,7 +58,9 @@ add_executable(main
 	src/init.cpp
 	src/main.cpp
 	src/render.cpp
-	src/shader_loader.cpp
+	src/globals.cpp
+	src/imgui_util.cpp
+	src/texture.cpp
 	src/util.cpp
 	src/debug.cpp
 
@@ -71,9 +73,10 @@ add_executable(main
 	src/model/composite_model.cpp
 	src/model/postprocessing_model.cpp
 
-	src/context/shader.cpp
-	src/context/tick_context.cpp
-	src/context/draw_context.cpp
+	src/level/level.cpp
+	src/shader/shader.cpp
+	src/shader/shader_loader.cpp
+	src/shader/shader_manager.cpp
 
 	src/entity/camera.cpp
 	src/entity/simple_entity.cpp
@@ -83,6 +86,7 @@ add_executable(main
 	src/entity/bullet.cpp
 	src/entity/minion.cpp
 	src/entity/damageable.cpp
+	src/entity/platform.cpp
 
 	src/entity/animation/animation.cpp
 	src/entity/animation/billboard_animation.cpp

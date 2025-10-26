@@ -6,6 +6,10 @@
 
 namespace hack_game {
 
+	extern ImVec2 globalScale;
+
+	void AddRectFilledScaled(const ImVec2& pMin, const ImVec2& pMax, ImU32 color, float rounding = 0, ImDrawFlags flags = 0);
+
 	static constexpr ImVec2 operator+(const ImVec2& vec1, const ImVec2& vec2) noexcept { return ImVec2(vec1.x + vec2.x, vec1.y + vec2.y); }
 	static constexpr ImVec2 operator-(const ImVec2& vec1, const ImVec2& vec2) noexcept { return ImVec2(vec1.x - vec2.x, vec1.y - vec2.y); }
 	static constexpr ImVec2 operator*(const ImVec2& vec1, const ImVec2& vec2) noexcept { return ImVec2(vec1.x * vec2.x, vec1.y * vec2.y); }

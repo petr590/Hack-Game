@@ -1,8 +1,9 @@
 #include "textured_model.h"
+#include "texture.h"
 #include "dir_paths.h"
 
 #ifndef NDEBUG
-#include "context/shader.h"
+#include "shader/shader.h"
 #endif
 
 #include <map>
@@ -11,7 +12,6 @@
 
 #define GLEW_STATIC
 #include <GL/glew.h>
-#include <SOIL/SOIL.h>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
@@ -28,21 +28,7 @@ namespace hack_game {
 	using glm::vec3;
 	using glm::vec4;
 
-	using Image = TexturedModel::Image;
 	using Vertex = TexturedModel::Vertex;
-
-
-	struct TexturedModel::Image {
-		int width = 0;
-		int height = 0;
-		uint8_t* data = nullptr;
-
-		~Image() noexcept {
-			if (data != nullptr) {
-				SOIL_free_image_data(data);
-			}
-		}
-	};
 
 	struct TexturedModel::Vertex {
 		const glm::vec3 pos;
@@ -54,18 +40,12 @@ namespace hack_game {
 
 
 
-	static void loadImages(initializer_list<const char*> relativeTexturePaths, vector<Image>& images) {
-		images.reserve(relativeTexturePaths.size());
+	static void loadImages(initializer_list<const char*> relativeTexturePaths, vector<Texture>& textures) {
+		textures.reserve(relativeTexturePaths.size());
 
 		for (const char* relativePath : relativeTexturePaths) {
 			const string path = string(TEXTURES_DIR) + relativePath;
-
-			Image& image = images.emplace_back();
-			image.data = SOIL_load_image(path.c_str(), &image.width, &image.height, nullptr, SOIL_LOAD_RGBA);
-
-			if (image.data == nullptr) {
-				throw std::ios_base::failure("Cannot open file '" + path + "'");
-			}
+			textures.emplace_back(path.c_str());
 		}
 	}
 
@@ -135,29 +115,20 @@ namespace hack_game {
 	}
 
 
-	static void createTextures(const vector<Image>& images, vector<GLuint>& textures) {
-		const size_t size = images.size();
+	static void createTextures(const vector<Texture>& textures, vector<GLuint>& textureIds) {
+		const size_t size = textures.size();
 
-		textures = vector<GLuint>(size, 0);
-		glGenTextures(size, textures.data());
+		textureIds = vector<GLuint>(size, 0);
+		glGenTextures(size, textureIds.data());
 
 		for (size_t i = 0; i < size; i++) {
-			const Image& image = images[i];
-
-			glBindTexture(GL_TEXTURE_2D, textures[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(vec4(0.0f))); 
-			glBindTexture(GL_TEXTURE_2D, 0);
+			textures[i].bindGlTexture(textureIds[i]);
 		}
 	}
 
 
 	TexturedModel::TexturedModel(const char* relativeModelPath, initializer_list<const char*> relativeTexturePaths) {
-		loadImages(relativeTexturePaths, images);
+		loadImages(relativeTexturePaths, textures);
 		loadVertices(relativeModelPath, vertices, indices);
 	}
 
@@ -168,8 +139,8 @@ namespace hack_game {
 
 
 	GLuint TexturedModel::createVertexArray() {
-		createTextures(images, textures);
-		images.clear();
+		createTextures(textures, textureIds);
+		textures.clear();
 
 
 		GLuint buffers[2], VAO;
@@ -197,9 +168,9 @@ namespace hack_game {
 
 
 	void TexturedModel::draw(Shader& shader) const {
-		for (size_t i = 0; i < textures.size(); i++) {
+		for (size_t i = 0; i < textureIds.size(); i++) {
 			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, textures[i]);
+			glBindTexture(GL_TEXTURE_2D, textureIds[i]);
 		}
 
 		#ifndef NDEBUG

@@ -1,13 +1,15 @@
 #include "block.h"
 #include "model/models.h"
-#include "context/shader.h"
-#include "context/tick_context.h"
+#include "shader/shader.h"
+#include "level/level.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace hack_game {
 	using std::max;
+	using std::shared_ptr;
+	using std::make_shared;
 
 	using glm::uvec2;
 	using glm::vec2;
@@ -21,12 +23,12 @@ namespace hack_game {
 			pos(pos) {}
 	
 
-	Block Block::breakable(Shader& shader, const uvec2& pos) {
-		return Block(shader, models::breakableCube, 3, pos);
+	shared_ptr<Block> Block::breakable(Shader& shader, const uvec2& pos) {
+		return make_shared<Block>(shader, models::breakableCube, 3, pos);
 	}
 	
-	Block Block::unbreakable(Shader& shader, const uvec2& pos) {
-		return Block(shader, models::unbreakableCube, Damageable::MAX_HP, pos);
+	shared_ptr<Block> Block::unbreakable(Shader& shader, const uvec2& pos) {
+		return make_shared<Block>(shader, models::unbreakableCube, Damageable::MAX_HP, pos);
 	}
 
 
@@ -47,24 +49,24 @@ namespace hack_game {
 
 	const float DAMAGE_ANIMATION_DURATION = 0.25f;
 
-	void Block::damage(TickContext& context, hp_t damage) {
-		Damageable::damage(context, damage);
+	void Block::damage(Level& level, hp_t damage) {
+		Damageable::damage(level, damage);
 
 		if (!invulnerable() && damageAnimationTime <= 0) {
 			damageAnimationTime = DAMAGE_ANIMATION_DURATION;
 		}
 	}
 
-	void Block::onDestroy(TickContext& context) {
-		context.map[pos] = nullptr;
+	void Block::onDestroy(Level& level) {
+		level.map[pos] = nullptr;
 	}
 
-	void Block::tick(TickContext& context) {
+	void Block::tick(Level& level) {
 		if (damageAnimationTime > 0) {
-			damageAnimationTime -= context.getDeltaTime();
+			damageAnimationTime -= level.getDeltaTime();
 
 			if (damageAnimationTime <= 0 && destroyed()) {
-				context.removeEntity(shared_from_this());
+				level.removeEntity(shared_from_this());
 			}
 		}
 	}

@@ -1,5 +1,5 @@
 #include "frame_model.h"
-#include "context/shader.h"
+#include "shader/shader.h"
 #include "dir_paths.h"
 #include "util.h"
 

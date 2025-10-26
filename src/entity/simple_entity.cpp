@@ -1,6 +1,6 @@
 #include "simple_entity.h"
 #include "model/model.h"
-#include "context/shader.h"
+#include "shader/shader.h"
 
 #include <glm/gtc/type_ptr.hpp>
 

@@ -6,7 +6,7 @@
 namespace hack_game {
 
 	class BillboardAnimation: public Animation {
-		glm::mat4 view;
+		glm::mat4 view {0.0f};
 		
 	public:
 		using Animation::Animation;
@@ -15,7 +15,7 @@ namespace hack_game {
 			return view;
 		}
 		
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		glm::mat4 getModelTransform() const override;
 	};
 }

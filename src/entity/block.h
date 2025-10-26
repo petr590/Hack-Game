@@ -20,18 +20,18 @@ namespace hack_game {
 
 		Block(Shader& shader, const ColoredModel& model, hp_t hitpoints, const glm::uvec2& pos);
 		
-		static Block breakable(Shader& shader, const glm::uvec2& pos);
-		static Block unbreakable(Shader& shader, const glm::uvec2& pos);
+		static std::shared_ptr<Block> breakable(Shader& shader, const glm::uvec2& pos);
+		static std::shared_ptr<Block> unbreakable(Shader& shader, const glm::uvec2& pos);
 
 		AABB getHitbox() const;
 		
 		bool hasCollision(const glm::vec3& point) const override;
-		void damage(TickContext&, hp_t damage) override;
-		void tick(TickContext&) override;
+		void damage(Level&, hp_t damage) override;
+		void tick(Level&) override;
 		void draw() const override;
 	
 	protected:
-		void onDestroy(TickContext&) override;
+		void onDestroy(Level&) override;
 	};
 }
 

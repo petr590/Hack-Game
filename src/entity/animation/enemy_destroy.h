@@ -22,14 +22,14 @@ namespace hack_game {
 		const GLint seed;
 
 	public:
-		EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&&, DrawContext&) noexcept;
+		EnemyDestroyAnimation(std::shared_ptr<const EntityWithPos>&&, ShaderManager&) noexcept;
 		~EnemyDestroyAnimation() noexcept;
 
-		void tick(TickContext&) override;
+		void tick(Level&) override;
 		void draw() const override;
 	
 	protected:
-		void onRemove(TickContext&) override;
+		void onRemove(Level&) override;
 	};
 }
 

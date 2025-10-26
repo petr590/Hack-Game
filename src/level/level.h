@@ -1,15 +1,18 @@
-#ifndef HACK_GAME_TICK_CONTEXT_H
-#define HACK_GAME_TICK_CONTEXT_H
+#ifndef HACK_GAME__LEVEL__LEVEL_H
+#define HACK_GAME__LEVEL__LEVEL_H
 
 #include "gl_fwd.h"
 #include <vector>
 #include <map>
 #include <memory>
+
+#include <nlohmann/json_fwd.hpp>
 #include <glm/vec2.hpp>
 
 namespace hack_game {
 	const float TILE_SIZE = 0.05f;
 
+	class ShaderManager;
 	class Entity;
 	class Block;
 	class Player;
@@ -18,26 +21,29 @@ namespace hack_game {
 
 
 	class Map {
-		std::vector<std::vector<Block*>> data;
+		using ptr_t = std::shared_ptr<Block>;
+		std::vector<std::vector<ptr_t>> data;
 
 	public:
-		Map(size_t width, size_t height) noexcept:
-				data(width, std::vector<Block*>(height, nullptr)) {}
+		Map() noexcept = default;
+		Map(size_t width, size_t height);
+
+		void allocate(size_t width, size_t height);
 		
 
-		Block*& operator[](const glm::uvec2& p) {
+		ptr_t& operator[](const glm::uvec2& p) {
 			return data[p.x][p.y];
 		}
 
-		Block* operator[](const glm::uvec2& p) const {
+		const ptr_t& operator[](const glm::uvec2& p) const {
 			return data[p.x][p.y];
 		}
 
-		std::vector<Block*>& operator[](size_t x) {
+		std::vector<ptr_t>& operator[](size_t x) {
 			return data[x];
 		}
 
-		const std::vector<Block*>& operator[](size_t x) const {
+		const std::vector<ptr_t>& operator[](size_t x) const {
 			return data[x];
 		}
 
@@ -51,15 +57,17 @@ namespace hack_game {
 		}
 	};
 
-	struct TickContext {
+	class Level {
+	public:
 		Map map;
-		const std::shared_ptr<Player> player;
-		const std::shared_ptr<Enemy> enemy;
 
 		using EntityVector = std::vector<std::shared_ptr<Entity>>;
 		using EntityMap = std::map<GLuint, EntityVector>;
 
 	private:
+		std::shared_ptr<Player> player;
+		std::shared_ptr<Enemy> enemy;
+
 		EntityMap opaqueEntityMap;
 		EntityMap transparentEntityMap;
 
@@ -71,9 +79,13 @@ namespace hack_game {
 		float deltaTime = 0;
 
 		EntityVector& getVector(const std::shared_ptr<Entity>&) noexcept;
+		void addEntityDirect(std::shared_ptr<Entity>&&);
+
+		void readMap(ShaderManager& shaderManager, const std::string& path, const nlohmann::json&);
+		void readEntities(ShaderManager& shaderManager, const std::string& path, const nlohmann::json&);
 
 	public:
-		TickContext(Map&& map, const std::shared_ptr<Player>& player, const std::shared_ptr<Enemy>& enemy) noexcept;
+		Level(ShaderManager&, const std::string& path);
 
 		float getDeltaTime() const noexcept {
 			return deltaTime;
@@ -81,6 +93,14 @@ namespace hack_game {
 
 		void setDeltaTime(float deltaTime) noexcept {
 			this->deltaTime = deltaTime;
+		}
+
+		const std::shared_ptr<Player>& getPlayer() const noexcept {
+			return player;
+		}
+
+		const std::shared_ptr<Enemy>& getEnemy() const noexcept {
+			return enemy;
 		}
 
 		glm::uvec2 getMapPos(const glm::vec2& pos) const noexcept;

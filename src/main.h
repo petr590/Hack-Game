@@ -2,12 +2,15 @@
 #define HACK_GAME__MAIN_H
 
 #include "init.h"
-#include "context/shader.h"
 
 namespace hack_game {
-	class Initializer;
-	void mainLoop(const Initializer&, Shader& postprocessingShader, TickContext& tickContext, const std::map<GLuint, Shader*>& shaderById);
-	void onChangeWindowSize(int width, int height);
+	// class WindowData;
+	// void mainLoop(const WindowData&, ShaderManager&, Level&, const std::map<GLuint, Shader*>& shaderById);
+	// void onChangeWindowSize(int width, int height);
+
+	class WindowData;
+	void mainLoop(const WindowData&, ShaderManager&, bool profile);
+	void onChangeWindowSize(GLint width, GLint height);
 }
 
 #endif
